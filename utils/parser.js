@@ -1,6 +1,6 @@
-
-export const escapeHTML = (value) =>
-    value.toString().replace(
+export const escapeHTML = (value) => {
+    if (value === undefined || value === null) return "";
+    return value.toString().replace(
         /[&<>'"]/g,
         (match) =>
             ({
@@ -12,8 +12,10 @@ export const escapeHTML = (value) =>
                 "/": "&#x2F;",
             }[match])
     );
+};
 
 export function cleanAttributeValue(value) {
+    if (value === undefined || value === null) return "";
     return String(value)
         .replace(/^["']|["']$/g, "")
         .replace(/"/g, "&quot;")

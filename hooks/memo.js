@@ -1,6 +1,7 @@
 import { useSignal } from "./signals.js";
 import { useEffect } from "./effects.js";
 import { valuesChanged } from "../utils/dom.js";
+import { error } from "../logger.js";
 
 /**
  * Hook useMemo enhanced for memoized calculations.
@@ -12,11 +13,11 @@ import { valuesChanged } from "../utils/dom.js";
  */
 export function useMemo(computeFn, deps) {
     if (typeof computeFn !== "function")
-        throw new Error("The first argument of useMemo must be a function.");
+        error("The first argument of useMemo must be a function.");
     if (!Array.isArray(deps))
-        throw new Error("The second argument of useMemo must be an array.");
+        error("The second argument of useMemo must be an array.");
     if (!deps.every((dep) => typeof dep === "function"))
-        throw new Error("All dependencies must be signals or functions.");
+        error("All dependencies must be signals or functions.");
 
     // We create the signal with the initial value
     const [value, setValue] = useSignal(computeFn());

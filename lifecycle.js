@@ -1,3 +1,5 @@
+import { error } from "./logger.js";
+
 export class LifecycleSystem {
     lifecycle = new Map();
     static current = null;
@@ -25,7 +27,7 @@ export class LifecycleSystem {
 
 const getLifecycle = () => {
     if (!LifecycleSystem.current)
-        throw new Error("LifecycleSystem has not been established yet.");
+        error("LifecycleSystem has not been established yet.");
     return LifecycleSystem.current;
 };
 

@@ -87,10 +87,7 @@ function injectArray(v, sIdx, signals, hStr, isSigArr, fn) {
     return hStr + out + `<!--//${b}-->`;
 }
 
-/** =========================================
- *            MAIN FUNCTION
- * ========================================= */
-export function html(strs, ...vals) {
+function processTemplate(strs, ...vals) {
     let hStr = "",
         sMap = new Map(),
         rMap = new Map();
@@ -133,6 +130,13 @@ export function html(strs, ...vals) {
     const t = document.createElement("template");
     t.innerHTML = hStr.trim();
     return { template: t.content, signals: sMap, refs: rMap };
+}
+
+/** =========================================
+ *            MAIN FUNCTION
+ * ========================================= */
+export function html(strs, ...vals) {
+    return processTemplate(strs, ...vals);
 }
 
 /** =========================================

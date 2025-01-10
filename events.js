@@ -1,4 +1,5 @@
 import STATE from "./globals.js";
+import { error } from "./logger.js";
 
 export function registerEvent(type, handler) {
     let handlers = STATE.globalEvents.handlersByType.get(type);
@@ -19,7 +20,7 @@ export function clearEventHandler(type, id) {
 
 export function useEmit(name, detail) {
     const comp = STATE.currentComponent;
-    if (!comp) throw new Error("useEmit must be used within a component");
+    if (!comp) error("useEmit must be used within a component");
 
     const event = new CustomEvent(name, {
         detail,
