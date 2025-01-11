@@ -60,9 +60,9 @@ function injectSignalAttr(val, aName, hStr, sIdx, signals) {
 
 /** Text/expression injection => <!-- data-expr-n --> */
 function injectExpr(val, isFn, hStr, sIdx, signals) {
-    const bA = `data-expr-${sIdx}`,
-        t = isFn ? "expression" : "text",
-        out = isFn ? val() : val;
+    const bA = `data-expr-${sIdx}`;
+    const t = isFn ? "expression" : "text";
+    const out = isFn ? val() : val;
     signals.set(sIdx, { type: t, signal: val, bindAttr: bA });
     return `${hStr}<!--${bA}-->${escapeHTML(String(out))}<!--//${bA}-->`;
 }
