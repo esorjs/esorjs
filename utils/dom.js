@@ -32,9 +32,7 @@ export function findCommentPlaceholders(root, bindAttr) {
 }
 
 export function insertContentBefore(parent, content, endNode) {
-    if (isTemplateObject(content)) {
+    if (isTemplateObject(content))
         parent.insertBefore(content.template.cloneNode(true), endNode);
-    } else {
-        parent.insertBefore(document.createTextNode(String(content)), endNode);
-    }
+    else parent.insertBefore(document.createTextNode(String(content)), endNode);
 }
