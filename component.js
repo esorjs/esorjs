@@ -75,7 +75,6 @@ export function component(name, setup) {
             STATE.currentComponent = prevComp;
 
             const { template, signals, refs } = templateData || {};
-            this.shadowRoot.innerHTML = "";
 
             if (template) {
                 this.shadowRoot.appendChild(template.cloneNode(true));
