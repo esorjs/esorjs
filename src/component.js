@@ -1,4 +1,3 @@
-
 import { LifecycleSystem } from "./lifecycle.js";
 import STATE from "./globals.js";
 import { useSignal } from "./hooks/signals.js";
@@ -15,6 +14,7 @@ import { warn } from "./logger.js";
 
 /**
  * Caché de plantillas / fragmentos,
+ * para evitar re-parsear el DOM cada vez que se instancia un componente.
  */
 const templateCache = new Map();
 
@@ -24,14 +24,14 @@ const templateCache = new Map();
  * - Los cachea y retorna un clon de su contenido.
  */
 function getCachedTemplate(key, maybeFragmentOrTemplate) {
-    // Caso 1: El usuario (o html()) nos dio un DocumentFragment
+    // Caso 1: DocumentFragment
     if (maybeFragmentOrTemplate instanceof DocumentFragment) {
-        if (!templateCache.has(key))
+        if (!templateCache.has(key)) {
             templateCache.set(key, maybeFragmentOrTemplate);
-        
+        }
         return templateCache.get(key).cloneNode(true);
 
-        // Caso 2: Es un elemento <template>, clonamos su .content
+        // Caso 2: <template>
     } else if (maybeFragmentOrTemplate instanceof HTMLTemplateElement) {
         if (!templateCache.has(key)) {
             templateCache.set(key, maybeFragmentOrTemplate.content);
@@ -47,43 +47,56 @@ function getCachedTemplate(key, maybeFragmentOrTemplate) {
     }
 }
 
+/**
+ * Función principal para definir un componente ESOR.
+ * @param {string} name  - Nombre del custom element
+ * @param {function} setup - Función que retorna { template, signals, refs } o similar
+ * @returns {class} - La clase del Custom Element
+ */
 export function component(name, setup) {
     class EsorComponent extends HTMLElement {
         constructor() {
             super();
 
+            // 1) Intenta reutilizar la ShadowRoot declarativa (si viene de SSR)
             setupDeclarativeShadowRoot(this);
 
-            // Internos del framework
+            // 2) Inicializaciones del framework
             this._cleanup = new Set();
             this._isUpdating = false;
             this._signalBindings = new Map();
             this._props = {};
             this.lifecycle = new LifecycleSystem();
-
-            // Componente actual en STATE
             STATE.currentComponent = this;
 
-            // 1) Inicializa props YA (si dependes de atributos, ojo con que en constructor todavía no siempre están).
+            // 3) Convierte atributos en signals antes del render
             this._initializeProps();
+
+            // Llamamos hooks "beforeMount"
             this.lifecycle.runHooks("beforeMount", this);
+
+            // 4) Render inmediatamente en el constructor,
+            //    para reducir FOUC y reutilizar SSR si existe
             this._render();
         }
 
         connectedCallback() {
+            // "mount" hooks cuando se conecta
             this.lifecycle.runHooks("mount", this);
         }
 
         disconnectedCallback() {
-            // Hooks de destroy
+            // "destroy" hooks
             this.lifecycle.runHooks("destroy", this);
-            // Limpia efectos, signals, etc.
+            // Limpia
             this._cleanup.forEach((fn) => fn());
             this._cleanup.clear();
             this._signalBindings.clear();
         }
 
-        // Convierte atributos "especiales" en signals
+        /**
+         * Lee atributos especiales y los convierte en signals (props).
+         */
         _initializeProps() {
             const props = this._props;
             for (const { name, value } of this.attributes) {
@@ -95,6 +108,9 @@ export function component(name, setup) {
             }
         }
 
+        /**
+         * Vincula un signal a una función de actualización (DOM u otra).
+         */
         _bindSignalToElement(signal, updateFn) {
             const effect = useEffect(() => {
                 if (this._isUpdating) return;
@@ -108,50 +124,57 @@ export function component(name, setup) {
             this._cleanup.add(effect);
         }
 
+        /**
+         * Render principal.
+         * - Ejecuta setup() para obtener { template, signals, refs }.
+         * - Inyecta la plantilla (si la ShadowRoot está vacía).
+         * - Llama a _bindEventsInRange, _setupSignals, _setupRefs, etc.
+         */
         _render() {
-            // beforeUpdate
             const prevComp = STATE.currentComponent;
             STATE.currentComponent = this;
             this.lifecycle.runHooks("beforeUpdate", this);
 
-            // Llamamos al setup() del usuario
+            // Ejecutamos la función setup()
             const setupResult = setup.call(this, this._props);
             const templateData =
                 typeof setupResult === "function" ? setupResult() : setupResult;
 
-            // Restauramos el componente anterior
             STATE.currentComponent = prevComp;
 
-            // Extraemos { template, signals, refs }
             const { template, signals, refs } = templateData || {};
 
-            // Si no hay 'template', mostramos aviso y salimos
+            // Si no hay template, mostramos aviso y terminamos
             if (!template) {
                 warn(`No 'template' object found for component: ${name}.`);
                 return;
             }
 
-            // Usamos la función de caché (acepta DocumentFragment o <template>)
-            const fragment = getCachedTemplate(name, template);
-            this.shadowRoot.appendChild(fragment);
+            // --- CLAVE PARA SSR/HIDRACIÓN ---
+            // Solo inyectar DOM si está vacío (evita duplicar SSR)
+            if (!this.shadowRoot.hasChildNodes()) {
+                const fragment = getCachedTemplate(name, template);
+                this.shadowRoot.appendChild(fragment);
+            }
+            // --- FIN CLAVE SSR ---
 
-            // Enlazamos eventos
+            // Hidratar: enlazar eventos, signals, refs, etc.
             this._bindEventsInRange();
-            // Configuramos signals
             this._setupSignals(signals);
-            // Configuramos refs
             this._setupRefs(refs);
-            // Observamos cambios de atributos
             this._setupPropEffects();
 
-            // update
             this.lifecycle.runHooks("update", this);
         }
 
+        /**
+         * Recorre el ShadowRoot (o rango) para encontrar data-event-* y enlazar handlers.
+         */
         _bindEventsInRange(startNode, endNode) {
             const shadowRoot = this.shadowRoot;
             const elements = [];
 
+            // Si no se definen nodos start/end => recorre todo
             if (!startNode && !endNode) {
                 if (shadowRoot.nodeType === Node.ELEMENT_NODE) {
                     elements.push(shadowRoot);
@@ -172,6 +195,7 @@ export function component(name, setup) {
                 }
             }
 
+            // Por cada elemento, busca atributos data-event-*
             elements.forEach((element) => {
                 Array.from(element.attributes).forEach((attribute) => {
                     if (attribute.name.startsWith("data-event-")) {
@@ -210,6 +234,9 @@ export function component(name, setup) {
             });
         }
 
+        /**
+         * Configura signals: atributos, arrays, text, expressions
+         */
         _setupSignals(signals) {
             if (!signals) return;
 
@@ -256,6 +283,9 @@ export function component(name, setup) {
             });
         }
 
+        /**
+         * Configura refs: data-ref-N => pasa el elemento al ref()
+         */
         _setupRefs(refs) {
             refs?.forEach((ref, index) => {
                 const element = this.shadowRoot.querySelector(
@@ -263,17 +293,21 @@ export function component(name, setup) {
                 );
                 if (element) {
                     element.removeAttribute(`data-ref-${index}`);
-                    ref(element); // Asigna el nodo real al proxy
+                    ref(element);
                 }
             });
         }
 
+        /**
+         * Observa cambios de atributos "especiales" y actualiza sus signals
+         */
         _setupPropEffects() {
             const observer = new MutationObserver((mutations) => {
                 mutations.forEach((mutation) => {
                     if (mutation.type === "attributes") {
                         const name = mutation.attributeName;
                         if (!isSpecialAttr(name)) return;
+
                         const signal = this._props[name];
                         if (signal?.set) {
                             signal.set(
@@ -293,6 +327,7 @@ export function component(name, setup) {
         }
     }
 
+    // Define el custom element
     customElements.define(name, EsorComponent);
     return EsorComponent;
 }
