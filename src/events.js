@@ -2,20 +2,17 @@ import STATE from "./globals.js";
 import { error } from "./logger.js";
 
 export function registerEvent(type, handler) {
-    let handlers = STATE.globalEvents.handlersByType.get(type);
-    if (!handlers) {
-        handlers = new Map();
-        STATE.globalEvents.handlersByType.set(type, handlers);
-    }
+    const state = STATE.globalEvents.handlersByType.get(type) || new Map();
     const id = STATE.globalEvents.nextId++;
-    handlers.set(id, handler);
+    state.set(id, handler);
+    STATE.globalEvents.handlersByType.set(type, state);
     return id;
 }
 
 export function clearEventHandler(type, id) {
     const handlers = STATE.globalEvents.handlersByType.get(type);
-    handlers?.delete(id);
-    if (!handlers?.size) STATE.globalEvents.handlersByType.delete(type);
+    if (handlers) handlers.delete(id);
+    if (handlers.size === 0) STATE.globalEvents.handlersByType.delete(type);
 }
 
 export function useEmit(name, detail) {
@@ -29,11 +26,7 @@ export function useEmit(name, detail) {
         cancelable: true,
     });
 
-    event.__esor = {
-        name,
-        detail,
-        receivedBy: [],
-    };
-
-    return comp.dispatchEvent(event);
+    event.__esor = { name, detail, receivedBy: [] };
+    comp.dispatchEvent(event);
+    return event;
 }

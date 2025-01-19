@@ -2,6 +2,14 @@ export function valuesChanged(val1, val2) {
     return !Object.is(val1, val2);
 }
 
+export function getDocumentFragment(maybeFragmentOrTemplate) {
+    return maybeFragmentOrTemplate instanceof DocumentFragment
+        ? maybeFragmentOrTemplate
+        : maybeFragmentOrTemplate instanceof HTMLTemplateElement
+        ? maybeFragmentOrTemplate.content
+        : document.createDocumentFragment();
+}
+
 export function removeChildNodesBetween(startNode, endNode) {
     let node = startNode.nextSibling;
     while (node && node !== endNode) {
@@ -34,8 +42,7 @@ export function findCommentPlaceholders(root, bindAttr) {
 export function insertContentBefore(parent, content, endNode) {
     if (isTemplateObject(content))
         parent.insertBefore(content.template.cloneNode(true), endNode);
-    else
-        parent.insertBefore(document.createTextNode(String(content)), endNode);
+    else parent.insertBefore(document.createTextNode(String(content)), endNode);
 }
 
 export function setupDeclarativeShadowRoot(host) {

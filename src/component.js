@@ -5,6 +5,7 @@ import { useEffect } from "./hooks/effects.js";
 import { cleanAttributeValue } from "./utils/parser.js";
 import {
     findCommentPlaceholders,
+    getDocumentFragment,
     setupDeclarativeShadowRoot,
 } from "./utils/dom.js";
 import { handleSignalBinding, isSpecialAttr } from "./templates/templates.js";
@@ -18,33 +19,12 @@ import { warn } from "./logger.js";
  */
 const templateCache = new Map();
 
-/**
- * getCachedTemplate(key, maybeFragmentOrTemplate):
- * - Acepta un DocumentFragment O un <template>.
- * - Los cachea y retorna un clon de su contenido.
- */
 function getCachedTemplate(key, maybeFragmentOrTemplate) {
-    // Caso 1: DocumentFragment
-    if (maybeFragmentOrTemplate instanceof DocumentFragment) {
-        if (!templateCache.has(key)) {
-            templateCache.set(key, maybeFragmentOrTemplate);
-        }
-        return templateCache.get(key).cloneNode(true);
+    const content = getDocumentFragment(maybeFragmentOrTemplate);
+    if (!templateCache.has(key))
+        templateCache.set(key, content.cloneNode(true));
 
-        // Caso 2: <template>
-    } else if (maybeFragmentOrTemplate instanceof HTMLTemplateElement) {
-        if (!templateCache.has(key)) {
-            templateCache.set(key, maybeFragmentOrTemplate.content);
-        }
-        return templateCache.get(key).cloneNode(true);
-
-        // Caso 3: Ni fragmento ni template => warning + fragmento vacío
-    } else {
-        warn(
-            `No valid <template> or DocumentFragment found for component: ${key}`
-        );
-        return document.createDocumentFragment();
-    }
+    return templateCache.get(key).cloneNode(true);
 }
 
 /**
@@ -250,9 +230,8 @@ export function component(name, setup) {
 
                     this._bindSignalToElement(signal, (newVal) => {
                         const strVal = String(newVal);
-                        if (element.getAttribute(attributeName) !== strVal) {
+                        if (element.getAttribute(attributeName) !== strVal)
                             element.setAttribute(attributeName, strVal);
-                        }
                     });
                 } else if (type === "array") {
                     const [startNode, endNode] = findCommentPlaceholders(
