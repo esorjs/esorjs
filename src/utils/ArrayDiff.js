@@ -1,4 +1,4 @@
-import { isTemplateObject } from "../templates/engine.js";
+import { isTemplateObject } from "../templates/engine";
 
 export const ARRAY_OP = {
     KEEP: "KEEP", // The element did not change

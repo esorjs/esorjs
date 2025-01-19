@@ -1,4 +1,4 @@
-import STATE from '../globals.js';
+import STATE from '../globals';
 
 export function flushEffects() {
     if (STATE.isEffectsFlushing) return;

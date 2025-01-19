@@ -1,6 +1,6 @@
-import STATE from "../globals.js";
-import { valuesChanged } from "../utils/dom.js";
-import { flushEffects } from "./effects.js";
+import STATE from "../globals";
+import { valuesChanged } from "../utils/dom";
+import { flushEffects } from "./effects";
 
 let batchDepth = 0;
 const pendingUpdates = new Set();
@@ -27,7 +27,10 @@ export function useSignal(initialValue) {
         }
 
         queueMicrotask(() => {
-            subscriptions.forEach((effect) => STATE.pendingEffects.add(effect));
+            subscriptions.forEach((effect) => {
+                if (typeof effect === "function")
+                    STATE.pendingEffects.add(effect);
+            });
             flushEffects();
         });
     };

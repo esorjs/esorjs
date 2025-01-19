@@ -1,6 +1,6 @@
-import { useSignal } from "./signals.js";
-import { useEffect } from "./effects.js";
-import { error } from "../logger.js";
+import { useSignal } from "./signals";
+import { useEffect } from "./effects";
+import { error } from "../logger";
 
 const STORAGE_PREFIX = "esor-store:";
 

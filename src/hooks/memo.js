@@ -1,5 +1,5 @@
-import { useSignal } from "./signals.js";
-import { useEffect } from "./effects.js";
+import { useSignal } from "./signals";
+import { useEffect } from "./effects";
 
 export function useMemo(fn) {
     const [signal, setSignal] = useSignal();

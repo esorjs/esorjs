@@ -1,5 +1,5 @@
-import STATE from "./globals.js";
-import { error } from "./logger.js";
+import STATE from "./globals";
+import { error } from "./logger";
 
 export function registerEvent(type, handler) {
     const state = STATE.globalEvents.handlersByType.get(type) || new Map();

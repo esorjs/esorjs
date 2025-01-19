@@ -1,5 +1,5 @@
-import { registerEvent } from "../events.js";
-import { escapeHTML } from "../utils/parser.js";
+import { registerEvent } from "../events";
+import { escapeHTML } from "../utils/parser";
 
 /** Regex */
 const attrReg = /\s(\w[\w-]*)=(["'])?(?:(?!\2).)*$/;
@@ -127,6 +127,7 @@ function processTemplate(strs, ...vals) {
             }
         }
     }
+
     const t = document.createElement("template");
     t.innerHTML = hStr.trim();
     return { template: t.content, signals: sMap, refs: rMap };

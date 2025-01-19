@@ -1,4 +1,4 @@
-import { error } from "./logger.js";
+import { error } from "./logger";
 
 export class LifecycleSystem {
     lifecycle = new Map();

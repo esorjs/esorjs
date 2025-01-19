@@ -1,17 +1,17 @@
-import { LifecycleSystem } from "./lifecycle.js";
-import STATE from "./globals.js";
-import { useSignal } from "./hooks/signals.js";
-import { useEffect } from "./hooks/effects.js";
-import { cleanAttributeValue } from "./utils/parser.js";
+import { LifecycleSystem } from "./lifecycle";
+import STATE from "./globals";
+import { useSignal } from "./hooks/signals";
+import { useEffect } from "./hooks/effects";
+import { cleanAttributeValue } from "./utils/parser";
 import {
     findCommentPlaceholders,
     getDocumentFragment,
     setupDeclarativeShadowRoot,
-} from "./utils/dom.js";
-import { handleSignalBinding, isSpecialAttr } from "./templates/templates.js";
-import { renderArrayDiff } from "./utils/ArrayDiff.js";
-import { coerceAttrValue } from "./utils/types.js";
-import { warn } from "./logger.js";
+} from "./utils/dom";
+import { handleSignalBinding, isSpecialAttr } from "./templates/templates";
+import { renderArrayDiff } from "./utils/ArrayDiff";
+import { coerceAttrValue } from "./utils/types";
+import { warn } from "./logger";
 
 /**
  * Caché de plantillas / fragmentos,
@@ -156,9 +156,9 @@ export function component(name, setup) {
 
             // Si no se definen nodos start/end => recorre todo
             if (!startNode && !endNode) {
-                if (shadowRoot.nodeType === Node.ELEMENT_NODE) {
+                if (shadowRoot.nodeType === Node.ELEMENT_NODE)
                     elements.push(shadowRoot);
-                }
+
                 shadowRoot
                     .querySelectorAll("*")
                     .forEach((child) => elements.push(child));
@@ -288,11 +288,10 @@ export function component(name, setup) {
                         if (!isSpecialAttr(name)) return;
 
                         const signal = this._props[name];
-                        if (signal?.set) {
+                        if (signal?.set)
                             signal.set(
                                 coerceAttrValue(this.getAttribute(name))
                             );
-                        }
                     }
                 });
             });

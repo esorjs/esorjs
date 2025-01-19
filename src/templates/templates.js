@@ -1,8 +1,5 @@
-import {
-    removeChildNodesBetween,
-    findCommentPlaceholders,
-} from "../utils/dom.js";
-import { evalExpr, isTemplateObject } from "./engine.js";
+import { removeChildNodesBetween, findCommentPlaceholders } from "../utils/dom";
+import { evalExpr, isTemplateObject } from "./engine";
 
 export function bindPlaceholderSignal(host, { signal, bindAttr, renderer }) {
     const [startNode, endNode] = findCommentPlaceholders(

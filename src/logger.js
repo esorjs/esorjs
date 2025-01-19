@@ -1,4 +1,4 @@
-import STATE from "./globals.js";
+import STATE from "./globals";
 
 const STYLES = {
     info: { color: "#0066cc", icon: "ℹ️" },
