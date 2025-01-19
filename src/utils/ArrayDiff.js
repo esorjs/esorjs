@@ -26,7 +26,7 @@ export function createKeyMap(items) {
 export function calculateArrayDiff(oldItems, newItems) {
     const operations = [];
     const oldKeyMap = createKeyMap(oldItems);
-     const processedKeys = new Set();
+    const processedKeys = new Set();
 
     // Detect added and updated elements
     newItems.forEach((newItem, newIndex) => {
@@ -78,15 +78,25 @@ export function calculateArrayDiff(oldItems, newItems) {
     return operations;
 }
 
+// Optimized element creation with fragment caching
+const fragmentCache = new WeakMap();
+
 export function createElementFromItem(item) {
     if (isTemplateObject(item)) {
-        const fragment = item.template.cloneNode(true);
-        if (fragment.childNodes.length === 1) {
-            return fragment.firstChild;
+        let cachedFragment = fragmentCache.get(item);
+        if (!cachedFragment) {
+            cachedFragment = item.template.cloneNode(true);
+            fragmentCache.set(item, cachedFragment);
         }
-        const wrapper = document.createElement("div");
-        wrapper.appendChild(fragment);
-        return wrapper;
+
+        const fragment = cachedFragment.cloneNode(true);
+        return fragment.childNodes.length === 1
+            ? fragment.firstChild
+            : (() => {
+                  const wrapper = document.createElement("div");
+                  wrapper.appendChild(fragment);
+                  return wrapper;
+              })();
     }
     return document.createTextNode(String(item ?? ""));
 }
@@ -151,9 +161,7 @@ export function applyArrayDiff(operations, startNode, endNode, host) {
 
     // Clean existing nodes
     existingNodes.forEach((node) => {
-        if (node.parentNode === container) {
-            container.removeChild(node);
-        }
+        if (node.parentNode === container) container.removeChild(node);
     });
 
     // Insert fragment with new nodes
