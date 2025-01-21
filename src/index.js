@@ -4,7 +4,7 @@ import { useSignal, useBatch } from "./hooks/signals";
 import { useRef } from "./hooks/ref";
 import { useComputed } from "./hooks/signals";
 import { useMemo } from "./hooks/memo";
-import { useEmit } from "./events";
+import { useEmit } from "./events/events";
 import { useEffect } from "./hooks/effects";
 import { useStore } from "./hooks/store";
 import {

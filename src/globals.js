@@ -1,4 +1,4 @@
-// Estado global mutable
+// Global mutable state
 const STATE = {
     currentEffect: null,
     currentComponent: null,

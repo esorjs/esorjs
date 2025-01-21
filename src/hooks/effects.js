@@ -1,8 +1,11 @@
-import STATE from '../globals';
+import STATE from "../globals";
 
+/**
+ * Efectos pendientes se ejecutan en microtask,
+ * evitando actualizaciones sin control.
+ */
 export function flushEffects() {
     if (STATE.isEffectsFlushing) return;
-    
     STATE.isEffectsFlushing = true;
     Promise.resolve().then(() => {
         const effectsToRun = new Set(STATE.pendingEffects);
@@ -12,6 +15,10 @@ export function flushEffects() {
     });
 }
 
+/**
+ * useEffect: registra una función "effect" que se re-ejecuta al cambiar
+ * signals leídos durante su ejecución.
+ */
 export function useEffect(fn) {
     const effect = () => {
         const prevEffect = STATE.currentEffect;
@@ -22,8 +29,6 @@ export function useEffect(fn) {
             STATE.currentEffect = prevEffect;
         }
     };
-    
-    // See if there is an observedAttributes statement that matches the current one.
-    effect();
+    effect(); // Ejecuta inmediatamente la primera vez
     return effect;
 }

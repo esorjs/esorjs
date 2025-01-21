@@ -5,15 +5,9 @@ import { error } from "../logger";
 const STORAGE_PREFIX = "esor-store:";
 
 /**
- * Creates a simplified reactive store
- * @template T
- * @param {T} initialState - Initial state object
- * @param {Object} options - Store configuration
- * @param {string} [options.persist] - Storage key for persistence
- * @returns {[() => T, Object]} Returns [state getter, store methods]
+ * useStore: pequeño store reactivo con persistencia opcional en localStorage
  */
 export const useStore = (initialState, options = {}) => {
-    // Initialize state from storage if needed
     const storedState = options.persist
         ? loadFromStorage(options.persist)
         : null;
@@ -21,7 +15,6 @@ export const useStore = (initialState, options = {}) => {
     const [state, setState] = useSignal(storedState || initialState);
     const subscribers = new Set();
 
-    // Setup persistence if enabled
     if (options.persist) {
         useEffect(() => {
             const handleStorage = (e) => {
@@ -38,31 +31,24 @@ export const useStore = (initialState, options = {}) => {
         });
     }
 
-    // Simplified store API
     const store = {
         setState(update) {
             const newState =
                 typeof update === "function" ? update(state()) : update;
-
             setState(newState);
-
             if (options.persist) saveToStorage(options.persist, newState);
-
             subscribers.forEach((cb) => cb(newState));
         },
-
         subscribe(callback) {
             subscribers.add(callback);
             return () => subscribers.delete(callback);
         },
-
         getState: state,
     };
 
     return [state, store];
 };
 
-// Storage helpers
 function loadFromStorage(key) {
     try {
         const data = localStorage.getItem(STORAGE_PREFIX + key);

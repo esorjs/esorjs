@@ -1,3 +1,7 @@
+/**
+ * useRef: devuelve un objeto mutable cuyo valor .current se asigna
+ * al elemento DOM real.
+ */
 export function useRef() {
     let ref = null;
     return new Proxy(() => {}, {
