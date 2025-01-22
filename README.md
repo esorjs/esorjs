@@ -35,7 +35,7 @@ yarn add esor
 Aquí tienes un ejemplo básico de un counter con Esor:
 
 ```javascript
-import { useSignal } from 'esor';
+import { component, html, useSignal } from 'esor';
 
 component() => {
   const [count, setCount] = useeSignal(0);
