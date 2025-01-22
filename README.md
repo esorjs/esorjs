@@ -1,4 +1,3 @@
-
 <p align="center">
   <img src="./assets/esor_logo.png" alt="Esor Logo" width="200"/>
 </p>
@@ -13,12 +12,15 @@
 
 Esor es un framework de JavaScript ligero y eficiente para construir interfaces de usuario reactivas.
 
-## Características
+## Carateristicas Principales
 
-- **Rendimiento**: Optimizado para un rendimiento rápido y eficiente.
-- **Reactividad**: Sistema de reactividad simple y poderoso.
-- **Componentes**: Componentes reutilizables y fáciles de usar.
-- **Ecosistema**: Integración con herramientas y bibliotecas populares.
+- Está construido sobre Web Components nativos.
+- Usa un sistema de reactividad basado en señales (signals) inspirado en SolidJs.
+- Implementa un motor de templating con sintaxis similar a lit-html
+- Maneja la gestión de estado a través de stores.
+- Sistema de reconciliación de arrays y actualización eficiente del DOM
+- Manejo de atributos y propiedades.
+- Sistema de eventos personalizado.
 
 ## Instalación
 
