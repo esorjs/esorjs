@@ -2,13 +2,10 @@ export function valuesChanged(val1, val2) {
     return !Object.is(val1, val2);
 }
 
-export function getDocumentFragment(maybeFragmentOrTemplate) {
-    return maybeFragmentOrTemplate instanceof DocumentFragment
-        ? maybeFragmentOrTemplate
-        : maybeFragmentOrTemplate instanceof HTMLTemplateElement
-        ? maybeFragmentOrTemplate.content
-        : document.createDocumentFragment();
-}
+export const getDocumentFragment = (e) =>
+    (e instanceof DocumentFragment && e) ||
+    e?.content?.cloneNode() ||
+    document.createDocumentFragment();
 
 export function removeChildNodesBetween(startNode, endNode) {
     let node = startNode.nextSibling;
@@ -19,31 +16,16 @@ export function removeChildNodesBetween(startNode, endNode) {
     }
 }
 
-export function findCommentPlaceholders(root, bindAttr) {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT);
-    let startNode = null;
-    let endNode = null;
-    let foundStart = false;
-
-    while (walker.nextNode()) {
-        const { nodeValue } = walker.currentNode;
-        if (!foundStart && nodeValue === bindAttr) {
-            startNode = walker.currentNode;
-            foundStart = true;
-        } else if (foundStart && nodeValue === `//${bindAttr}`) {
-            endNode = walker.currentNode;
-            break;
-        }
+export const findCommentPlaceholders = (root, attr) => {
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT);
+    let [s, e] = [null, null];
+    while (w.nextNode() && !e) {
+        const n = w.currentNode;
+        if (!s && n.nodeValue === attr) s = n;
+        else if (s && n.nodeValue === `//${attr}`) e = n;
     }
-
-    return [startNode, endNode];
-}
-
-export function insertContentBefore(parent, content, endNode) {
-    if (isTemplateObject(content))
-        parent.insertBefore(content.template.cloneNode(true), endNode);
-    else parent.insertBefore(document.createTextNode(String(content)), endNode);
-}
+    return [s, e];
+};
 
 export function setupDeclarativeShadowRoot(host) {
     const supportsDeclarative =

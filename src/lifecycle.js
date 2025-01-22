@@ -1,54 +1,45 @@
-import { error } from "./logger";
-
 export class Lifecycle {
-    #lifecycle = new Map();
-    static current = null;
+    static current;
+    #lc = new Map();
 
     constructor() {
         Lifecycle.current = this;
     }
 
-    #getHooksSet(type) {
-        if (!this.#lifecycle.has(type)) {
-            this.#lifecycle.set(type, new Set());
-        }
-        return this.#lifecycle.get(type);
+    #hooks(t) {
+        return this.#lc.has(t) || this.#lc.set(t, new Set()), this.#lc.get(t);
     }
 
-    add(type, callback) {
-        this.#getHooksSet(type).add(callback);
-        return () => this.#lifecycle.get(type)?.delete(callback);
+    add(t, fn) {
+        this.#hooks(t).add(fn);
+        return () => this.#lc.get(t)?.delete(fn);
     }
-
-    runHooks(type, context) {
-        this.#lifecycle.get(type)?.forEach((hook) => hook.call(context));
+    run(t, ctx) {
+        this.#lc.get(t)?.forEach((f) => f.call(ctx));
     }
-
-    clearHooks(type) {
-        type ? this.#lifecycle.delete(type) : this.#lifecycle.clear();
+    clear(t) {
+        t ? this.#lc.delete(t) : this.#lc.clear();
     }
 }
 
-function getLifecycle() {
-    if (!Lifecycle.current) error("Lifecycle has not been established yet.");
-    return Lifecycle.current;
-}
+const getLC = () =>
+    Lifecycle.current ||
+    (() => {
+        throw "Lifecycle not initialized";
+    })();
 
-export const beforeMount = (cb) => getLifecycle().add("beforeMount", cb);
-export const onMount = (cb) => getLifecycle().add("mount", cb);
-export const beforeUpdate = (cb) => getLifecycle().add("beforeUpdate", cb);
-export const onUpdate = (cb) => getLifecycle().add("update", cb);
-export const onDestroy = (cb) => getLifecycle().add("destroy", cb);
+export const [beforeMount, onMount, beforeUpdate, onUpdate, onDestroy] = [
+    "beforeMount",
+    "mount",
+    "beforeUpdate",
+    "update",
+    "destroy",
+].map((t) => (fn) => getLC().add(t, fn));
 
-/**
- * onEffect: registra un callback que se ejecuta en el ciclo de vida;
- * si retorna una función, se asume como cleanup.
- */
-export const onEffect = (cb) => {
-    const cleanup = cb();
-    if (cleanup instanceof Function) {
-        getLifecycle().add("destroy", cleanup);
-        return () => cleanup();
-    }
-    return () => {};
+export const onEffect = (fn) => {
+    const clean = fn();
+    return (
+        (clean instanceof Function && getLC().add("destroy", clean)) ||
+        (() => {})
+    );
 };

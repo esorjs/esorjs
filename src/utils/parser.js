@@ -16,6 +16,7 @@ export const escapeHTML = (value) => {
 
 export function cleanAttributeValue(value) {
     if (value === undefined || value === null) return "";
+
     return String(value)
         .replace(/^["']|["']$/g, "")
         .replace(/"/g, "&quot;")

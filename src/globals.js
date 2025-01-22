@@ -11,3 +11,13 @@ const STATE = {
 };
 
 export default STATE;
+
+export function withCurrentComponent(component, fn) {
+    const prev = STATE.currentComponent;
+    STATE.currentComponent = component;
+    try {
+        return fn();
+    } finally {
+        STATE.currentComponent = prev;
+    }
+}

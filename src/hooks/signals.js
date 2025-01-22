@@ -14,7 +14,6 @@ export function useSignal(initialValue) {
 
     const read = () => {
         if (STATE.currentEffect) subscriptions.add(STATE.currentEffect);
-        // Manejo especial para arrays reactivas
         if (Array.isArray(value)) return addSignalMap(value, read);
         return value;
     };
