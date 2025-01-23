@@ -39,7 +39,7 @@ Aquí tienes un ejemplo básico de un counter con Esor:
 ```javascript
 import { component, html, useSignal } from 'esor';
 
-component() => {
+component('my-counter', () => {
   const [count, setCount] = useeSignal(0);
 
   return html`
@@ -48,7 +48,7 @@ component() => {
       <button @click=${() => setCount(count+ 1)}>Incrementar</button>
     </div>
   `;
-}
+});
 ```
 
 ## Documentación

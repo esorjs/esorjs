@@ -8,7 +8,7 @@ const qReg = /(["'])\s*$/;
 const rawTags = /^(script|style|textarea|title)$/i;
 
 const trimQuote = (s) => s.replace(qReg, "");
-const getQuote = (s) => (s.endsWith('"') ? '"' : "'");
+const getQuote = (s) => (s.charAt(s.length - 1) === '"' ? '"' : "'");
 const isTemplateObject = (o) => o && typeof o === "object" && o.template;
 
 function injectRef(fn, hStr, i, refs) {
@@ -28,7 +28,7 @@ function injectSignalAttr(val, aName, hStr, sIdx, signals) {
     const initVal = typeof val === "function" ? val() : val;
     const escVal = rawTags.test(aName) ? String(initVal) : escapeHTML(initVal);
     const bindAttr = `data-bind-${sIdx}`;
-    hStr += `${escVal}" ${bindAttr}=${q}true${q}`;
+    hStr += `${escVal} '' ${bindAttr}=${q}true${q}`;
     signals.set(sIdx, {
         type: "attribute",
         signal: val,
