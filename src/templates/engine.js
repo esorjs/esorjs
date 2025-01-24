@@ -49,26 +49,21 @@ function injectExpr(val, isFn, hStr, sIdx, signals) {
 }
 function injectArray(v, sIdx, signals, hStr, isSigArr, fn) {
     const bind = `data-expr-${sIdx}`;
-    let out = `<!--${bind}-->`;
-    if (isSigArr) {
-        const sig = v.__signal,
-            mapFn = v.__mapFn;
-        const arrFn = () => (sig() || []).map(mapFn || ((x) => x));
-        const items = arrFn();
-        for (const item of Array.isArray(items) ? items : [])
-            out += processVal(item);
-        signals.set(sIdx, { type: "array", signal: arrFn, bindAttr: bind });
-    } else {
-        const arr = Array.isArray(v) ? v : [];
-        for (const item of arr) out += `<div>${processVal(item)}</div>`;
-        signals.set(sIdx, {
-            type: "array",
-            bindAttr: bind,
-            signal: typeof fn === "function" ? fn : () => v,
-        });
-    }
-    return hStr + out + `<!--//${bind}-->`;
+    const signalEntry = {
+        type: "array",
+        signal: isSigArr
+            ? () => (v.__signal() || []).map(v.__mapFn || ((x) => x))
+            : (typeof fn === "function" ? fn : () => v),
+        bindAttr: bind,
+    };
+
+    signals.set(sIdx, signalEntry);
+
+    const items = Array.isArray(v) ? v : [];
+    const out = items.map(processVal).join("");
+    return `${hStr}<!--${bind}-->${out}<!--//${bind}-->`;
 }
+
 function processVal(v) {
     if (v == null || v === false) return "";
     if (Array.isArray(v)) return v.reduce((acc, x) => acc + processVal(x), "");
