@@ -1,5 +1,6 @@
 import STATE from "../globals";
 import { valuesChanged } from "../utils/dom";
+import { addSignalMap } from "./arrays";
 import { flushEffects, useEffect } from "./effects";
 
 let batchDepth = 0;
@@ -63,41 +64,6 @@ export function useComputed(fn) {
     return value;
 }
 
-// Métodos para arrays reactivas:
-const ARRAY_METHODS = [
-    "map",
-    "filter",
-    "find",
-    "findIndex",
-    "slice",
-    "concat",
-    "reduce",
-    "every",
-    "some",
-    "includes",
-    "push",
-    "pop",
-    "shift",
-    "unshift",
-    "splice",
-    "reverse",
-    "sort",
-];
-
-function addSignalMap(arr, read) {
-    ARRAY_METHODS.forEach((method) => {
-        const orig = arr[method];
-        arr[method] = function (...args) {
-            const mappedArray = orig.apply(this, args);
-            mappedArray.__signalArray = true;
-            mappedArray.__signal = read;
-            mappedArray.__mapFn = args[0];
-            return mappedArray;
-        };
-    });
-    return arr;
-}
-
 /**
  * useBatch: agrupa varias escrituras de signals en un bloque atómico,
  * generando actualizaciones una sola vez al final.
@@ -109,9 +75,10 @@ export function useBatch(fn) {
     } finally {
         batchDepth--;
         if (batchDepth === 0 && pendingUpdates.size) {
-            const updates = Array.from(pendingUpdates);
+            for (const effect of pendingUpdates) {
+                STATE.pendingEffects.add(effect);
+            }
             pendingUpdates.clear();
-            updates.forEach((effect) => STATE.pendingEffects.add(effect));
             flushEffects();
         }
     }
