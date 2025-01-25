@@ -25,7 +25,7 @@ const log = (type = "info", message = "", ...args) => {
     console.groupEnd();
 };
 
-const capitalize = (s) => (s ? str.charAt(0).toUpperCase() + s.slice(1) : "");
+const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "");
 
 export const info = (...args) => log("info", ...args);
 export const warn = (...args) => log("warn", ...args);
