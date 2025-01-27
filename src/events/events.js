@@ -1,23 +1,54 @@
 import STATE from "../globals";
 import { error } from "../logger";
 
+const eventCache = new Map();
+
 export function registerEvent(type, handler) {
-    const state = STATE.globalEvents.handlersByType.get(type) || new Map();
+    if (!type || typeof handler !== "function") {
+        error("Invalid event registration parameters");
+        return -1;
+    }
+
+    let typeCache = eventCache.get(type);
+    if (!typeCache) {
+        typeCache = new Map();
+        eventCache.set(type, typeCache);
+    }
+
+    let handlers = STATE.globalEvents.handlersByType.get(type);
+    if (!handlers) {
+        handlers = new Map();
+        STATE.globalEvents.handlersByType.set(type, handlers);
+    }
+
     const id = STATE.globalEvents.nextId++;
-    state.set(id, handler);
-    STATE.globalEvents.handlersByType.set(type, state);
+
+    handlers.set(id, handler);
+    typeCache.set(id, handler);
+
     return id;
 }
 
 export function clearEventHandler(type, id) {
     const handlers = STATE.globalEvents.handlersByType.get(type);
-    if (handlers) handlers.delete(id);
-    if (handlers.size === 0) STATE.globalEvents.handlersByType.delete(type);
+    if (handlers) {
+        handlers.delete(id);
+        if (handlers.size === 0) STATE.globalEvents.handlersByType.delete(type);
+
+        const typeCache = eventCache.get(type);
+        if (typeCache) {
+            typeCache.delete(id);
+            if (typeCache.size === 0) eventCache.delete(type);
+        }
+    }
 }
 
 export function useEmit(name, detail) {
     const comp = STATE.currentComponent;
-    if (!comp) error("useEmit must be used within a component");
+    if (!comp) {
+        error("useEmit must be used within a component");
+        return null;
+    }
 
     const event = new CustomEvent(name, {
         detail,
@@ -26,7 +57,13 @@ export function useEmit(name, detail) {
         cancelable: true,
     });
 
-    event.__esor = { name, detail, receivedBy: [] };
+    event.__esor = {
+        name,
+        detail,
+        receivedBy: [],
+        timestamp: Date.now(),
+    };
+
     comp.dispatchEvent(event);
     return event;
 }
