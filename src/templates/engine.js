@@ -9,7 +9,7 @@ const rawTags = /^(script|style|textarea|title)$/i;
 
 const trimQuote = (s) => s.replace(qReg, "");
 const getQuote = (s) => (s.charAt(s.length - 1) === '"' ? '"' : "'");
-const isTemplateObject = (o) => o && typeof o === "object" && o.template;
+export const isTemplateObject = (o) => o && typeof o === "object" && o.template;
 
 function injectRef(fn, hStr, i, refs) {
     const q = getQuote(hStr);
@@ -53,7 +53,9 @@ function injectArray(v, sIdx, signals, hStr, isSigArr, fn) {
         type: "array",
         signal: isSigArr
             ? () => (v.__signal() || []).map(v.__mapFn || ((x) => x))
-            : (typeof fn === "function" ? fn : () => v),
+            : typeof fn === "function"
+            ? fn
+            : () => v,
         bindAttr: bind,
     };
 
@@ -63,7 +65,6 @@ function injectArray(v, sIdx, signals, hStr, isSigArr, fn) {
     const out = items.map(processVal).join("");
     return `${hStr}<!--${bind}-->${out}<!--//${bind}-->`;
 }
-
 function processVal(v) {
     if (v == null || v === false) return "";
     if (Array.isArray(v)) return v.reduce((acc, x) => acc + processVal(x), "");
@@ -79,7 +80,6 @@ function processVal(v) {
         return v.templates.reduce((a, x) => a + processVal(x), "");
     return escapeHTML(String(v));
 }
-
 function processTemplate(strs, ...vals) {
     let hStr = "",
         sMap = new Map(),
@@ -126,10 +126,6 @@ function processTemplate(strs, ...vals) {
     t.innerHTML = hStr.trim();
     return { template: t.content, signals: sMap, refs: rMap };
 }
-
-export function html(strs, ...vals) {
-    return processTemplate(strs, ...vals);
-}
 export function evalExpr(fn) {
     try {
         return fn() ?? null;
@@ -137,4 +133,7 @@ export function evalExpr(fn) {
         return null;
     }
 }
-export { isTemplateObject };
+
+export function html(strs, ...vals) {
+    return processTemplate(strs, ...vals);
+}

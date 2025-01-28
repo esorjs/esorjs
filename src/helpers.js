@@ -19,58 +19,49 @@ export function bindSignalToElement(instance, signal, updateFn) {
 
 export function bindEventsInRange(instance, startNode, endNode) {
     const { shadowRoot } = instance;
-    const nodes =
-        !startNode && !endNode
-            ? shadowRoot.querySelectorAll("*")
-            : startNode?.nextElementSibling?.parentElement?.querySelectorAll(
-                  "*"
-              ) || [];
-
-    const elements = Array.from(nodes);
+    const elements = [];
+    if (!startNode && !endNode) {
+        if (shadowRoot.nodeType === Node.ELEMENT_NODE)
+            elements.push(shadowRoot);
+        elements.push(...shadowRoot.querySelectorAll("*"));
+    } else {
+        let cur = startNode?.nextSibling;
+        while (cur && cur !== endNode) {
+            if (cur.nodeType === Node.ELEMENT_NODE) {
+                elements.push(cur, ...cur.querySelectorAll("*"));
+            }
+            cur = cur.nextSibling;
+        }
+    }
 
     for (const el of elements) {
-        const eventHandlers = {};
-        for (const attr of el.attributes) {
+        for (const attr of Array.from(el.attributes)) {
+            // Convertir a Array para evitar modificaciones durante iteración
             if (!attr.name.startsWith("data-event-")) continue;
-
-            const eventType = attr.name.slice(11);
-            const handlersByType = STATE.globalEvents.handlersByType;
-
-            if (!handlersByType.has(eventType)) continue;
-
+            const eventType = attr.name.replace("data-event-", "");
             const handlerId = parseInt(attr.value, 10);
-            const eventHandler = handlersByType.get(eventType)?.get(handlerId);
-
+            const eventHandler = STATE.globalEvents.handlersByType
+                .get(eventType)
+                ?.get(handlerId);
             if (typeof eventHandler === "function") {
-                eventHandlers[eventType] = {
-                    handler: eventHandler,
-                    ac: new AbortController(),
-                };
+                const ac = new AbortController();
+                el.addEventListener(
+                    eventType,
+                    (...args) =>
+                        withCurrentComponent(instance, () =>
+                            eventHandler.call(instance, ...args)
+                        ),
+                    { signal: ac.signal }
+                );
+                instance._cleanup.add(() => ac.abort());
+                el.removeAttribute(attr.name);
             }
         }
-
-        for (const [evtType, { handler, ac }] of Object.entries(
-            eventHandlers
-        )) {
-            el.addEventListener(
-                evtType,
-                (...args) =>
-                    withCurrentComponent(instance, () =>
-                        handler.call(instance, ...args)
-                    ),
-                { signal: ac.signal }
-            );
-        }
-
-        instance._cleanup.add(() => {
-            for (const { ac } of Object.values(eventHandlers)) ac.abort();
-        });
     }
 }
 
 export function setupSignals(instance, signals) {
     if (!signals) return;
-
     signals.forEach(({ type, signal, bindAttr, attributeName }) => {
         if (type === "attribute") {
             const el = instance.shadowRoot.querySelector(`[${bindAttr}]`);
@@ -105,12 +96,10 @@ export function setupSignals(instance, signals) {
 
 export function setupRefs(instance, refs) {
     if (!refs) return;
-    const root = instance.shadowRoot;
     refs.forEach((refFn, i) => {
-        const el = root.querySelector(`[data-ref-${i}]`);
-        if (el) {
-            el.removeAttribute(`data-ref-${i}`);
-            refFn(el);
-        }
+        const el = instance.shadowRoot.querySelector(`[data-ref-${i}]`);
+        if (!el) return;
+        el.removeAttribute(`data-ref-${i}`);
+        refFn(el);
     });
 }

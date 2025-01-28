@@ -38,23 +38,26 @@ export function handleSignalBinding({ host, type, signal, bindAttr }) {
 }
 
 function renderEvaluated(host, start, end, val) {
-    if (val.type === "template-array") {
+    if (Array.isArray(val) && val.some(isTemplateObject)) {
+        // Si el valor es una array de objetos de plantilla
         reconcileArrays(
             start,
             end,
             start.__oldItems || [],
-            val.templates,
+            val,
             host
         );
         return;
     }
     const node = isTemplateObject(val)
-        ? val.template.cloneNode(true)
+        ? val.template.cloneNode(true).firstElementChild
         : document.createTextNode(String(val));
     removeChildNodesBetween(start, end);
-    end.parentNode.insertBefore(node, end);
-    if (isTemplateObject(val)) bindEventsInRange(host, start, end);
+    if (node) {
+        end.parentNode.insertBefore(node, end);
+        if (isTemplateObject(val)) bindEventsInRange(host, start, end);
+    }
 }
 
 export const specialAttr = (n) =>
-    n && !/^(data-|@|ref$)/.test(n) && /^[a-z][\w\-_:]*$/i.test(n);
+    n && !/^(data-|@|ref|key$)/.test(n) && /^[a-z][\w\-_:]*$/i.test(n);

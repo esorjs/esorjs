@@ -30,9 +30,8 @@ export function useSignal(initialValue) {
         // Actualizamos en microtask
         queueMicrotask(() => {
             for (const effect of subscriptions) {
-                if (typeof effect === "function") {
+                if (typeof effect === "function")
                     STATE.pendingEffects.add(effect);
-                }
             }
             flushEffects();
         });
@@ -57,9 +56,8 @@ export function useComputed(fn) {
     const [value, setValue] = useSignal(fn());
     useEffect(() => {
         const newValue = fn();
-        if (valuesChanged(value(), newValue)) {
+        if (valuesChanged(value(), newValue))
             queueMicrotask(() => setValue(newValue));
-        }
     });
     return value;
 }
