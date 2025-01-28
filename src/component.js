@@ -15,7 +15,7 @@ export function component(name, setup) {
             this._props = {};
             this.lifecycle = new Lifecycle();
             STATE.currentComponent = this;
-
+            this._eventIds = []; // Nuevo: Registrar eventos del componente
             initPropsAndObserve(this);
             this.lifecycle.run("beforeMount", this);
             this._render(); // Render inicial
@@ -29,12 +29,15 @@ export function component(name, setup) {
             this.lifecycle.run("destroy", this);
             this._cleanup.forEach((fn) => fn());
             this._cleanup.clear();
+            this._eventIds.forEach(({ type, id }) => {
+                clearEventHandler(type, id);
+            });
+            this._eventIds = [];
         }
 
         _render() {
             withCurrentComponent(this, () => {
                 this.lifecycle.run("beforeUpdate", this);
-
                 const setupResult = setup.call(this, this._props);
                 const { template, signals, refs } =
                     typeof setupResult === "function"
@@ -45,8 +48,8 @@ export function component(name, setup) {
                     this.shadowRoot.appendChild(cachedTemplate(name, template));
                 }
 
-                bindEventsInRange(this);
                 setupSignals(this, signals);
+                bindEventsInRange(this);
                 setupRefs(this, refs);
                 this.lifecycle.run("update", this);
             });

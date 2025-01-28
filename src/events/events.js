@@ -23,6 +23,10 @@ export function registerEvent(type, handler) {
 
     const id = STATE.globalEvents.nextId++;
 
+    // Registrar en el componente actual si existe
+    const comp = STATE.currentComponent;
+    if (comp) comp._eventIds.push({ type, id });
+
     handlers.set(id, handler);
     typeCache.set(id, handler);
 

@@ -15,7 +15,13 @@ export class Lifecycle {
         return () => this.#lc.get(t)?.delete(fn);
     }
     run(t, ctx) {
-        this.#lc.get(t)?.forEach((f) => f.call(ctx));
+        this.#lc.get(t)?.forEach((fn) => {
+            try {
+                fn.call(ctx);
+            } catch (e) {
+                ctx._catchError(e);
+            }
+        });
     }
     clear(t) {
         t ? this.#lc.delete(t) : this.#lc.clear();
