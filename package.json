@@ -1,18 +1,11 @@
 {
     "name": "esor",
-    "version": "0.1.7",
+    "version": "0.1.8",
     "description": "JavaScript framework for dynamic Web applications based on Web Components",
     "author": "Juan Cristobal",
     "license": "MIT",
     "type": "module",
-    "main": "dist/index.js",
-    "module": "dist/index.js",
-    "exports": {
-        ".": {
-            "import": "./dist/index.js",
-            "require": "./dist/index.cjs"
-        }
-    },
+    "main": "dist/esor.min.js",
     "files": [
         "dist"
     ],
