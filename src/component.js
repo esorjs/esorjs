@@ -10,15 +10,19 @@ export function component(name, setup) {
         constructor() {
             super();
             setupDeclarativeShadowRoot(this);
-            this._cleanup = new Set();
-            this._isUpdating = false;
-            this._props = {};
+            this._initInstanceState();
             this.lifecycle = new Lifecycle();
             STATE.currentComponent = this;
-            this._eventIds = []; // Nuevo: Registrar eventos del componente
             initPropsAndObserve(this);
             this.lifecycle.run("beforeMount", this);
             this._render(); // Render inicial
+        }
+
+        _initInstanceState() {
+            this._cleanup = new Set();
+            this._isUpdating = false;
+            this._props = {};
+            this._eventIds = [];
         }
 
         connectedCallback() {
