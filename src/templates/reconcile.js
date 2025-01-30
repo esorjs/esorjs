@@ -33,28 +33,33 @@ function getNodeKey(node) {
 }
 
 function updateNodeContent(oldNode, newNode, oldItem, newItem) {
-    if (!oldNode || !newNode || !oldItem || !newItem) return false;
+    if (!oldNode || !newNode || !oldItem?.template || !newItem?.template)
+        return false;
 
-    if (oldItem.template && newItem.template) {
-        const oldTextNodes = getTextNodes(oldNode);
-        const newTextNodes = getTextNodes(newNode);
+    // Normalización de nodos de texto adyacentes
+    if (oldNode.firstChild?.nodeType === 3) oldNode.normalize();
+    if (newNode.firstChild?.nodeType === 3) newNode.normalize();
 
-        let updated = false;
-        oldTextNodes.forEach((textNode, index) => {
-            const newTextNode = newTextNodes[index];
-            if (
-                newTextNode &&
-                textNode.textContent !== newTextNode.textContent
-            ) {
-                textNode.textContent = newTextNode.textContent;
-                updated = true;
-            }
-        });
+    // Cache de nodos de texto
+    const oldTextNodes = getTextNodes(oldNode);
+    const newTextNodes = getTextNodes(newNode);
 
-        return updated;
+    // Chequeo temprano de longitud diferente
+    if (oldTextNodes.length !== newTextNodes.length) return false;
+
+    let updated = false;
+
+    for (let i = 0, len = oldTextNodes.length; i < len; i++) {
+        const oldText = oldTextNodes[i].textContent;
+        const newText = newTextNodes[i].textContent;
+
+        if (oldText !== newText) {
+            oldTextNodes[i].textContent = newText;
+            updated = true;
+        }
     }
 
-    return false;
+    return updated;
 }
 
 function getTextNodes(node) {
@@ -77,32 +82,34 @@ function getTextNodes(node) {
 function createOrReuseNodes(items, currentNodes, oldItems) {
     const nodeMap = new Map();
     const oldItemsMap = new Map();
+    const keys = [items.length];
 
-    currentNodes.forEach((node) => {
-        const key = getNodeKey(node);
-        if (key) nodeMap.set(key, node);
-    });
+    for (let i = 0, len = currentNodes.length; i < len; i++) {
+        const key = getNodeKey(currentNodes[i]);
+        if (key) nodeMap.set(key, currentNodes[i]);
+    }
 
-    oldItems.forEach((item, index) => {
-        const key = getItemKey(item, index);
-        oldItemsMap.set(key, item);
-    });
+    for (let i = 0, len = oldItems.length; i < len; i++) {
+        oldItemsMap.set(getItemKey(oldItems[i], i), oldItems[i]);
+    }
 
-    return items.map((item, index) => {
-        const key = getItemKey(item, index);
+    for (let i = 0, len = items.length; i < len; i++) {
+        keys[i] = getItemKey(items[i], i);
+    }
+
+    return items.map((item, i) => {
+        const key = keys[i];
         const existingNode = nodeMap.get(key);
         const oldItem = oldItemsMap.get(key);
 
-        if (existingNode && isValidDOMNode(existingNode)) {
-            if (hasChanged(oldItem, item)) {
+        if (existingNode?.nodeType === 1) {
+            if (!oldItem || hasChanged(oldItem, item)) {
                 const newNode = createNode(item, key);
-
-                if (!updateNodeContent(existingNode, newNode, oldItem, item)) {
+                if (updateNodeContent(existingNode, newNode, oldItem, item)) {
                     copyEventAttributes(existingNode, newNode);
-                    return newNode;
+                    return existingNode;
                 }
-
-                return existingNode;
+                return newNode;
             }
             return existingNode;
         }
@@ -124,27 +131,35 @@ function hasChanged(oldItem, newItem) {
 }
 
 function extractDynamicValues(item) {
-    if (!item?.template) return null;
+    const template = item?.template;
+    if (!template) return null;
 
     const values = [];
-    const fragment = item.template.cloneNode(true);
+    const fragment = template.cloneNode(true); // Clonar para evitar efectos secundarios
     const walker = document.createTreeWalker(
         fragment,
         NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
-        null,
-        false
+        {
+            acceptNode(node) {
+                 if (node.nodeType === 3) {
+                     return node.textContent.trim().length > 0
+                        ? NodeFilter.FILTER_ACCEPT
+                        : NodeFilter.FILTER_SKIP;
+                }
+                return NodeFilter.FILTER_ACCEPT; // Aceptar todos los elementos
+            },
+        }
     );
 
-    while (walker.nextNode()) {
-        const node = walker.currentNode;
-        if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
-            values.push(node.textContent);
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-            Array.from(node.attributes).forEach((attr) => {
-                if (attr.value.includes("${")) {
-                    values.push(attr.value);
-                }
-            });
+    let node;
+    while ((node = walker.nextNode())) {
+        if (node.nodeType === 3) values.push(node.textContent);
+        else {
+            const attrs = node.attributes;
+            for (let i = 0, len = attrs.length; i < len; i++) {
+                const value = attrs[i].value;
+                if (value.includes("${")) values[values.length] = value;
+            }
         }
     }
 
@@ -178,11 +193,14 @@ function areValuesEqual(a, b) {
 function copyEventAttributes(oldNode, newNode) {
     if (!isValidDOMNode(oldNode) || !isValidDOMNode(newNode)) return;
 
-    Array.from(oldNode.attributes).forEach((attr) => {
-        if (attr.name.startsWith("data-event-")) {
+    const EVENT_PREFIX = "data-event-";
+
+    const attributes = oldNode.attributes;
+    for (let i = attributes.length; i--; ) {
+        const attr = attributes[i];
+        if (attr.name.lastIndexOf(EVENT_PREFIX, 0) === 0)
             newNode.setAttribute(attr.name, attr.value);
-        }
-    });
+    }
 }
 
 function getItemKey(item, index) {
@@ -300,9 +318,8 @@ function ddiff(parent, current, newList, refNode) {
                     const node = current[aStart];
                     while (bStart < index)
                         parent.insertBefore(newList[bStart++], node);
-                } else {
+                } else
                     parent.replaceChild(newList[bStart++], current[aStart++]);
-                }
             } else aStart++;
         }
     }
