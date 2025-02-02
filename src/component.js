@@ -4,6 +4,7 @@ import { setupDeclarativeShadowRoot } from "./utils/dom";
 import { initPropsAndObserve } from "./templates/props";
 import { bindEventsInRange, setupSignals, setupRefs } from "./helpers";
 import { cachedTemplate } from "./templates/templates";
+import { clearEventHandler } from "./events/events";
 
 export function component(name, setup) {
     class EsorComponent extends HTMLElement {
@@ -33,7 +34,6 @@ export function component(name, setup) {
 
         disconnectedCallback() {
             this.lifecycle.run("destroy", this);
-            // Ejecutar y limpiar funciones de limpieza y eventos registrados
             [...this._cleanup].forEach(fn => fn());
             this._cleanup.clear();
             [...this._eventIds].forEach(({ type, id }) => clearEventHandler(type, id));

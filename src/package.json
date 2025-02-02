@@ -1,6 +1,6 @@
 {
     "name": "esor",
-    "version": "0.1.10",
+    "version": "0.1.11",
     "description": "JavaScript framework for dynamic Web applications based on Web Components",
     "type": "module",
     "main": "index.js",
