@@ -27,26 +27,27 @@ function coerceAttrValue(raw) {
 }
 
 export function generateSpecialAttrSignals(instance) {
+    instance._props = instance._props || {};
+    instance._propsSetters = instance._propsSetters || {};
+
     for (const { name, value } of instance.attributes) {
         if (!specialAttr(name)) continue;
-        const [signal, setSignal] = useSignal(
-            coerceAttrValue(cleanAttributeValue(value))
-        );
-        signal.set = setSignal;
+        const coercedValue = coerceAttrValue(cleanAttributeValue(value));
+        const [signal, setSignal] = useSignal(coercedValue);
         instance._props[name] = signal;
+        instance._propsSetters[name] = setSignal;
     }
 }
 
 export function observeAttrMutations(instance) {
     const obs = new MutationObserver((ms) => {
         for (const m of ms) {
-            if (m.type !== "attributes" || !specialAttr(m.attributeName))
-                continue;
-            const sig = instance._props[m.attributeName];
-            if (sig?.set)
-                sig.set(
-                    coerceAttrValue(instance.getAttribute(m.attributeName))
-                );
+            if (m.type !== "attributes" || !specialAttr(m.attributeName)) continue;
+            const setter = instance._propsSetters[m.attributeName];
+            if (setter) {
+                const newValue = coerceAttrValue(instance.getAttribute(m.attributeName));
+                setter(newValue);
+            }
         }
     });
     obs.observe(instance, { attributes: true, attributeOldValue: true });

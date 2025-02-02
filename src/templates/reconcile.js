@@ -204,6 +204,7 @@ function copyEventAttributes(oldNode, newNode) {
 }
 
 function getItemKey(item, index) {
+    if (item?.key !== undefined) return `key-${item.key}`;
     if (item?.template) {
         const el = item.template.firstElementChild;
         if (item.id) return `item-${item.id}`;

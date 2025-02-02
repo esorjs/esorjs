@@ -1,4 +1,5 @@
 import STATE from "../globals";
+import { error } from "../logger";
 
 /**
  * Efectos pendientes se ejecutan en microtask,
@@ -8,21 +9,15 @@ export function flushEffects() {
     if (STATE.isEffectsFlushing) return;
     STATE.isEffectsFlushing = true;
 
-    Promise.resolve().then(() => {
-        const effectsToRun = new Set(STATE.pendingEffects);
-        STATE.pendingEffects.clear();
+    const effectsToRun = Array.from(STATE.pendingEffects);
+    STATE.pendingEffects.clear();
 
-        effectsToRun.forEach((effect) => {
-            if (typeof effect === "function") {
-                effect(); // ejecuta el efecto
-            } else {
-                // Loggear error si no es una función
-                console.error("Non-function in flushEffects:", effect);
-            }
-        });
+    for (const effect of effectsToRun) {
+        if (typeof effect === "function") effect();
+        else error("Non-function in flushEffects:", effect);
+    }
 
-        STATE.isEffectsFlushing = false;
-    });
+    STATE.isEffectsFlushing = false;
 }
 
 /**

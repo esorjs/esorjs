@@ -1,36 +1,26 @@
-// Métodos para arrays reactivas:
-const ARRAY_METHODS = [
-    "map",
-    "filter",
-    "find",
-    "findIndex",
-    "slice",
-    "concat",
-    "reduce",
-    "every",
-    "some",
-    "includes",
-    "push",
-    "pop",
-    "shift",
-    "unshift",
-    "splice",
-    "reverse",
-    "sort",
-];
-
-export function addSignalMap(arr, read) {
-    for (const method of ARRAY_METHODS) {
-        const fn = arr[method];
-        arr[method] = (...args) => {
-            const result = fn.apply(arr, args);
-            if (result instanceof Array) {
-                result.__signalArray = true;
-                result.__signal = read;
-                result.__mapFn = args[0];
+/**
+ * Función genérica para envolver arrays en un Proxy que
+ * intercepte cualquier acceso y los haga reactivos.
+ */
+export function wrapArray(arr, read) {
+    return new Proxy(arr, {
+        get(target, prop, receiver) {
+            const value = Reflect.get(target, prop, receiver);
+            if (typeof value === "function") {
+                return function (...args) {
+                    const result = value.apply(target, args);
+                    if (Array.isArray(result)) {
+                        result.__signalArray = true;
+                        result.__signal = read;
+                        if (args.length > 0 && typeof args[0] === "function") {
+                            result.__mapFn = args[0];
+                        }
+                        return wrapArray(result, read);
+                    }
+                    return result;
+                };
             }
-            return result;
-        };
-    }
-    return arr;
+            return value;
+        },
+    });
 }

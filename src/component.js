@@ -19,10 +19,12 @@ export function component(name, setup) {
         }
 
         _initInstanceState() {
-            this._cleanup = new Set();
-            this._isUpdating = false;
-            this._props = {};
-            this._eventIds = [];
+            Object.assign(this, {
+                _cleanup: new Set(),
+                _isUpdating: false,
+                _props: {},
+                _eventIds: []
+            });
         }
 
         connectedCallback() {
@@ -31,11 +33,10 @@ export function component(name, setup) {
 
         disconnectedCallback() {
             this.lifecycle.run("destroy", this);
-            this._cleanup.forEach((fn) => fn());
+            // Ejecutar y limpiar funciones de limpieza y eventos registrados
+            [...this._cleanup].forEach(fn => fn());
             this._cleanup.clear();
-            this._eventIds.forEach(({ type, id }) => {
-                clearEventHandler(type, id);
-            });
+            [...this._eventIds].forEach(({ type, id }) => clearEventHandler(type, id));
             this._eventIds = [];
         }
 
@@ -51,7 +52,6 @@ export function component(name, setup) {
                 if (!this.shadowRoot.hasChildNodes()) {
                     this.shadowRoot.appendChild(cachedTemplate(name, template));
                 }
-
                 setupSignals(this, signals);
                 bindEventsInRange(this);
                 setupRefs(this, refs);

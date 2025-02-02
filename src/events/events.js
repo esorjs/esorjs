@@ -8,7 +8,7 @@ export function registerEvent(type, handler) {
         error("Invalid event registration parameters");
         return -1;
     }
-
+    
     let typeCache = eventCache.get(type);
     if (!typeCache) {
         typeCache = new Map();
