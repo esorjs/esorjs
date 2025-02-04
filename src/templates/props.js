@@ -55,6 +55,6 @@ export function observeAttrMutations(instance) {
 }
 
 export function initPropsAndObserve(instance) {
-    generateSpecialAttrSignals(instance);
+    generateSpecialAttrSignals(instance);    
     observeAttrMutations(instance);
 }

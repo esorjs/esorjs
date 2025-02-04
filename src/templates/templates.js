@@ -40,13 +40,7 @@ export function handleSignalBinding({ host, type, signal, bindAttr }) {
 function renderEvaluated(host, start, end, val) {
     if (Array.isArray(val) && val.some(isTemplateObject)) {
         // Si el valor es una array de objetos de plantilla
-        reconcileArrays(
-            start,
-            end,
-            start.__oldItems || [],
-            val,
-            host
-        );
+        reconcileArrays(start, end, start.__oldItems || [], val, host);
         return;
     }
     const node = isTemplateObject(val)

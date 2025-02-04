@@ -141,8 +141,8 @@ function extractDynamicValues(item) {
         NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
         {
             acceptNode(node) {
-                 if (node.nodeType === 3) {
-                     return node.textContent.trim().length > 0
+                if (node.nodeType === 3) {
+                    return node.textContent.trim().length > 0
                         ? NodeFilter.FILTER_ACCEPT
                         : NodeFilter.FILTER_SKIP;
                 }
@@ -258,7 +258,10 @@ function ddiff(parent, current, newList, refNode) {
         return;
     }
     if (bEnd === 0) {
-        while (aStart < aEnd) parent.removeChild(current[aStart++]);
+        while (aStart < aEnd) {
+            const node = current[aStart++];
+            if (node instanceof Node) parent.removeChild(node);
+        }
         return;
     }
 

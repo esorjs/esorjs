@@ -42,8 +42,10 @@ export function useSignal(initialValue) {
 
             const currentVal = readFn();
 
+            if (currentVal == null) return undefined;
+
             if (
-                (typeof currentVal === "object" && currentVal !== null) ||
+                typeof currentVal === "object" ||
                 typeof currentVal === "function"
             ) {
                 const result = Reflect.get(currentVal, prop);
