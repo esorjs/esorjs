@@ -1,4 +1,4 @@
-import { bindEventsInRange, bindSignalToElement } from "../helpers";
+import { bindSignalToElement } from "../helpers";
 import {
     removeChildNodesBetween,
     findCommentPlaceholders,
@@ -39,17 +39,17 @@ export function handleSignalBinding({ host, type, signal, bindAttr }) {
 
 function renderEvaluated(host, start, end, val) {
     if (Array.isArray(val) && val.some(isTemplateObject)) {
-        // Si el valor es una array de objetos de plantilla
         reconcileArrays(start, end, start.__oldItems || [], val, host);
         return;
     }
-    const node = isTemplateObject(val)
-        ? val.template.cloneNode(true).firstElementChild
-        : document.createTextNode(String(val));
-    removeChildNodesBetween(start, end);
-    if (node) {
-        end.parentNode.insertBefore(node, end);
-        if (isTemplateObject(val)) bindEventsInRange(host, start, end);
+
+    let current = start.nextSibling;
+    if (current && current.nodeType === Node.TEXT_NODE) {
+        current.textContent = String(val);
+    } else {
+        removeChildNodesBetween(start, end);
+        const textNode = document.createTextNode(String(val));
+        end.parentNode.insertBefore(textNode, end);
     }
 }
 
