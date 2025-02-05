@@ -3,6 +3,7 @@ import { handleSignalBinding } from "./templates/templates";
 import { findCommentPlaceholders } from "./utils/dom";
 import { reconcileArrays } from "./templates/reconcile";
 import { useEffect } from "./hooks/effects";
+import { ATTRIBUTES_NAMES_EVENTS } from "./templates/engine";
 
 export function bindSignalToElement(instance, signal, updateFn) {
     const effect = useEffect(() => {
@@ -50,8 +51,8 @@ export function getElementsInRange(shadowRoot, startNode, endNode) {
 export function bindEvents(instance, elements) {
     for (const el of elements) {
         for (const attr of Array.from(el.attributes)) {
-            if (!attr.name.startsWith("data-event-")) continue;
-            const event = attr.name.replace("data-event-", "");
+            if (!attr.name.startsWith(`${ATTRIBUTES_NAMES_EVENTS}`)) continue;
+            const event = attr.name.replace(ATTRIBUTES_NAMES_EVENTS, "");
             const handlerId = parseInt(attr.value, 10);
 
             // Verificar si el handler aún existe antes de vincular

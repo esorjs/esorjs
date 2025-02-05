@@ -8,6 +8,10 @@
 import { registerEvent } from "../events/events";
 import { escapeHTML } from "../utils/parser";
 
+export const PLACEHOLDER_EXPRESSION_PREFIX = "$:#";
+export const ATTRIBUTES_NAMES_EVENTS = "data-esor-event-";
+export const ATTRIBUTES_NAMES_BIND = "data-esor-bind-";
+
 // Regular expressions to detect attributes, references, events and quotes
 const attrReg = /\s(\w[\w-]*)=(["'])?(?:(?!\2).)*$/;
 const refReg = /ref=(["'])?\s*$/;
@@ -60,7 +64,7 @@ function injectRef(fn, hStr, i, refs) {
 }
 
 /**
- * injectEvent: Injects the event handler (data-event-type).
+ * injectEvent: Injects the event handler.
  * @param {Function} fn - Handler function.
  * @param {string} eType - Event type (without @).
  * @param {string} hStr - HTML string.
@@ -68,7 +72,12 @@ function injectRef(fn, hStr, i, refs) {
 function injectEvent(fn, eType, hStr) {
     const id = registerEvent(eType, fn);
     fn.isEventHandler = true;
-    return replaceAttribute(hStr, evtReg, `data-event-${eType}`, id);
+    return replaceAttribute(
+        hStr,
+        evtReg,
+        `${ATTRIBUTES_NAMES_EVENTS}${eType}`,
+        id
+    );
 }
 
 /**
@@ -86,7 +95,7 @@ function injectSignalAttr(val, aName, hStr, sIdx, signals) {
 
     const initVal = typeof val === "function" ? val() : val;
     const escVal = rawTags.test(aName) ? String(initVal) : escapeHTML(initVal);
-    const bindAttr = `data-bind-${sIdx}`;
+    const bindAttr = `${ATTRIBUTES_NAMES_BIND}${sIdx}`;
 
     // Close previous attribute with its value and add data-bind
     hStr += `${quote}${escVal}${quote} ${bindAttr}=${quote}true${quote}`;
@@ -109,7 +118,7 @@ function injectSignalAttr(val, aName, hStr, sIdx, signals) {
  * @param {Map} signals
  */
 function injectExpr(val, isFn, hStr, sIdx, signals) {
-    const bA = `data-expr-${sIdx}`;
+    const bA = `${PLACEHOLDER_EXPRESSION_PREFIX}${sIdx}`;
     signals.set(sIdx, {
         type: isFn ? "expression" : "text",
         signal: val,
@@ -129,7 +138,7 @@ function injectExpr(val, isFn, hStr, sIdx, signals) {
  * @param {Function} [fn]
  */
 function injectArray(v, sIdx, signals, hStr, isSigArr, fn) {
-    const bind = `data-expr-${sIdx}`;
+    const bind = `${PLACEHOLDER_EXPRESSION_PREFIX}${sIdx}`;
     const signalEntry = {
         type: "array",
         signal: isSigArr

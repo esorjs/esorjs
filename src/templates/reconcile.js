@@ -1,4 +1,5 @@
 import { bindEventsInRange } from "../helpers";
+import { ATTRIBUTES_NAMES_EVENTS } from "./engine";
 
 export function reconcileArrays(startNode, endNode, oldItems, newItems, host) {
     oldItems = [...(oldItems || [])];
@@ -193,12 +194,10 @@ function areValuesEqual(a, b) {
 function copyEventAttributes(oldNode, newNode) {
     if (!isValidDOMNode(oldNode) || !isValidDOMNode(newNode)) return;
 
-    const EVENT_PREFIX = "data-event-";
-
     const attributes = oldNode.attributes;
     for (let i = attributes.length; i--; ) {
         const attr = attributes[i];
-        if (attr.name.lastIndexOf(EVENT_PREFIX, 0) === 0)
+        if (attr.name.lastIndexOf(ATTRIBUTES_NAMES_EVENTS, 0) === 0)
             newNode.setAttribute(attr.name, attr.value);
     }
 }

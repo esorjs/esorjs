@@ -54,4 +54,4 @@ function renderEvaluated(host, start, end, val) {
 }
 
 export const specialAttr = (n) =>
-    n && !/^(data-|@|ref|key$)/.test(n) && /^[a-z][\w\-_:]*$/i.test(n);
+    n && !/^(data-esor-|@|ref|key$)/.test(n) && /^[a-z][\w\-_:]*$/i.test(n);
