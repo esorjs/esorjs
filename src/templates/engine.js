@@ -206,42 +206,42 @@ function processTemplate(strs, ...vals) {
 
     for (let i = 0; i < strs.length; i++) {
         hStr += strs[i];
-        if (i < vals.length) {
-            const val = vals[i];
-            const aMatch = strs[i].match(attrReg);
-            const inAttr = !!aMatch;
-            const aName = aMatch?.[1];
-            const refMatch = hStr.match(refReg);
-            const evtMatch = hStr.match(evtReg);
+        if (i >= vals.length) continue;
 
-            // Determine if it's a ref or event
-            const isRef = refMatch && typeof val === "function";
-            const isEvt = evtMatch && typeof val === "function";
-            const evtType = evtMatch ? evtMatch[1].slice(1) : null;
+        const val = vals[i];
+        const aMatch = strs[i].match(attrReg);
+        const inAttr = !!aMatch;
+        const aName = aMatch?.[1];
+        const refMatch = hStr.match(refReg);
+        const evtMatch = hStr.match(evtReg);
 
-            if (isRef) {
-                hStr = injectRef(val, hStr, rIdx++, rMap);
-            } else if (isEvt) {
-                hStr = injectEvent(val, evtType, hStr);
-            } else if ((val?.signal || typeof val === "function") && inAttr) {
-                // Signal injection in an attribute
-                hStr = injectSignalAttr(val, aName, hStr, sIdx++, sMap);
-            } else if (Array.isArray(val) && val.__signalArray === true) {
-                // Array with signal
-                hStr = injectArray(val, sIdx++, sMap, hStr, true);
-            } else if (val?.signal) {
-                // Expression: normal signal
-                hStr = injectExpr(val, false, hStr, sIdx++, sMap);
-            } else if (typeof val === "function") {
-                // Expression: function
-                hStr = injectExpr(val, true, hStr, sIdx++, sMap);
-            } else if (Array.isArray(val)) {
-                // Simple array
-                hStr = injectArray(val, sIdx++, sMap, hStr, false, val);
-            } else if (val != null) {
-                // Primitive value
-                hStr += processVal(val);
-            }
+        // Determine if it's a ref or event
+        const isRef = refMatch && typeof val === "function";
+        const isEvt = evtMatch && typeof val === "function";
+        const evtType = evtMatch ? evtMatch[1].slice(1) : null;
+
+        if (isRef) {
+            hStr = injectRef(val, hStr, rIdx++, rMap);
+        } else if (isEvt) {
+            hStr = injectEvent(val, evtType, hStr);
+        } else if ((val?.signal || typeof val === "function") && inAttr) {
+            // Signal injection in an attribute
+            hStr = injectSignalAttr(val, aName, hStr, sIdx++, sMap);
+        } else if (Array.isArray(val) && val.__signalArray === true) {
+            // Array with signal
+            hStr = injectArray(val, sIdx++, sMap, hStr, true);
+        } else if (val?.signal) {
+            // Expression: normal signal
+            hStr = injectExpr(val, false, hStr, sIdx++, sMap);
+        } else if (typeof val === "function") {
+            // Expression: function
+            hStr = injectExpr(val, true, hStr, sIdx++, sMap);
+        } else if (Array.isArray(val)) {
+            // Simple array
+            hStr = injectArray(val, sIdx++, sMap, hStr, false, val);
+        } else if (val != null) {
+            // Primitive value
+            hStr += processVal(val);
         }
     }
 

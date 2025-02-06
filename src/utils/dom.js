@@ -16,16 +16,29 @@ export function removeChildNodesBetween(startNode, endNode) {
     }
 }
 
-export const findCommentPlaceholders = (root, attr) => {
-    const w = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT);
-    let [s, e] = [null, null];
-    while (w.nextNode() && !e) {
-        const n = w.currentNode;
-        if (!s && n.nodeValue === attr) s = n;
-        else if (s && n.nodeValue === `//${attr}`) e = n;
+let placeholderCache = new WeakMap();
+
+export function findCommentPlaceholders(root, attr) {
+    if (placeholderCache.has(root)) {
+        const cached = placeholderCache.get(root)[attr];
+        if (cached) return cached;
     }
-    return [s, e];
-};
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT);
+    let start = null,
+        end = null;
+    while (walker.nextNode() && !end) {
+        const current = walker.currentNode;
+        if (!start && current.nodeValue === attr) start = current;
+        else if (start && current.nodeValue === `//${attr}`) end = current;
+    }
+
+    const result = [start, end];
+    placeholderCache.set(root, {
+        ...placeholderCache.get(root),
+        [attr]: result,
+    });
+    return result;
+}
 
 export function setupDeclarativeShadowRoot(host) {
     const supportsDeclarative =

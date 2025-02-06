@@ -40,7 +40,6 @@ export function component(name, setup) {
             );
             this._eventIds = [];
         }
-
         _render() {
             withCurrentComponent(this, () => {
                 this.lifecycle.run("beforeUpdate", this);

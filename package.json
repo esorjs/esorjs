@@ -1,6 +1,6 @@
 {
     "name": "esor",
-    "version": "0.1.17",
+    "version": "0.1.18",
     "description": "JavaScript framework for dynamic Web applications based on Web Components",
     "author": "Juan Cristobal",
     "license": "MIT",
