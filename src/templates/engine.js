@@ -5,10 +5,10 @@
  * unify attribute injection logic and simplify functions.
  */
 
-import { registerEvent } from "../events/events";
+import { registerEvent } from "../events";
 import { escapeHTML } from "../utils/parser";
 
-export const PLACEHOLDER_EXPRESSION_PREFIX = "$:#";
+export const PLACEHOLDER_EXPRESSION_PREFIX = "$:";
 export const ATTRIBUTES_NAMES_EVENTS = "data-esor-event-";
 export const ATTRIBUTES_NAMES_BIND = "data-esor-bind-";
 
@@ -92,14 +92,10 @@ function injectEvent(fn, eType, hStr) {
 function injectSignalAttr(val, aName, hStr, sIdx, signals) {
     hStr = removeQuote(hStr);
     const quote = hStr && hStr.charAt(hStr.length - 1) === '"' ? '"' : "'";
-
     const initVal = typeof val === "function" ? val() : val;
     const escVal = rawTags.test(aName) ? String(initVal) : escapeHTML(initVal);
     const bindAttr = `${ATTRIBUTES_NAMES_BIND}${sIdx}`;
-
-    // Close previous attribute with its value and add data-bind
     hStr += `${quote}${escVal}${quote} ${bindAttr}=${quote}true${quote}`;
-
     signals.set(sIdx, {
         type: "attribute",
         signal: val,
@@ -160,34 +156,34 @@ function injectArray(v, sIdx, signals, hStr, isSigArr, fn) {
  * @param {any} v
  */
 function processVal(v) {
-    if (v instanceof SVGElement) {
-        const svgContainer = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "svg"
-        );
-        svgContainer.appendChild(v.cloneNode(true));
-        return svgContainer.innerHTML;
-    }
-
     if (v == null || v === false) return "";
-
-    if (Array.isArray(v)) {
-        return v.reduce((acc, x) => acc + processVal(x), "");
-    }
+    if (Array.isArray(v)) return v.reduce((acc, x) => acc + processVal(x), "");
 
     if (isTemplateObject(v)) {
-        // Convert childNodes to string; if they have key, change it to data-key
-        return [...v.template.childNodes].reduce((acc, n) => {
+        const nodes = v.template.childNodes;
+        const fragments = [];
+        for (let i = 0, len = nodes.length; i < len; i++) {
+            const n = nodes[i];
             if (n.nodeType === 1 && n.hasAttribute("key")) {
                 n.setAttribute("data-key", n.getAttribute("key"));
                 n.removeAttribute("key");
             }
-            return acc + (n.outerHTML || n.textContent);
-        }, "");
+            fragments.push(n.outerHTML || n.textContent);
+        }
+        return fragments.join("");
     }
 
     if (v?.type === "template-array") {
         return v.templates.reduce((a, x) => a + processVal(x), "");
+    }
+
+    if (v instanceof SVGElement) {
+        const svg = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "svg"
+        );
+        svg.appendChild(v.cloneNode(true));
+        return svg.innerHTML;
     }
 
     return escapeHTML(String(v));

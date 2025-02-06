@@ -1,4 +1,4 @@
-import { bindEventsInRange } from "../helpers";
+import { bindEventsInRange } from "../dom-bindings";
 import { ATTRIBUTES_NAMES_EVENTS } from "./engine";
 
 export function reconcileArrays(startNode, endNode, oldItems, newItems, host) {

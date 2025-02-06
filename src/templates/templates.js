@@ -1,4 +1,4 @@
-import { bindSignalToElement } from "../helpers";
+import { bindSignalToElement } from "../dom-bindings";
 import {
     removeChildNodesBetween,
     findCommentPlaceholders,

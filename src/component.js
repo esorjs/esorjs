@@ -2,30 +2,29 @@ import { Lifecycle } from "./lifecycle";
 import STATE, { withCurrentComponent } from "./globals";
 import { setupDeclarativeShadowRoot } from "./utils/dom";
 import { initPropsAndObserve } from "./templates/props";
-import { bindEventsInRange, setupSignals, setupRefs } from "./helpers";
+import { bindEventsInRange, setupSignals, setupRefs } from "./dom-bindings";
 import { cachedTemplate } from "./templates/templates";
-import { clearEventHandler } from "./events/events";
+import { clearEventHandler } from "./events";
 
 export function component(name, setup) {
     class EsorComponent extends HTMLElement {
         constructor() {
             super();
+            // Se establece el Shadow DOM de forma declarativa o mediante attachShadow
             setupDeclarativeShadowRoot(this);
-            this._initInstanceState();
-            this.lifecycle = new Lifecycle();
-            STATE.currentComponent = this;
-            initPropsAndObserve(this);
-            this.lifecycle.run("beforeMount", this);
-            this._render(); // Render inicial
-        }
-
-        _initInstanceState() {
+            // Inicialización centralizada de propiedades internas
             Object.assign(this, {
                 _cleanup: new Set(),
                 _isUpdating: false,
                 _props: {},
-                _eventIds: []
+                _eventIds: [],
+                lifecycle: new Lifecycle(),
             });
+            // Se asigna el componente actual al estado global y se inicializan las propiedades observables
+            STATE.currentComponent = this;
+            initPropsAndObserve(this);
+            this.lifecycle.run("beforeMount", this);
+            this._render();
         }
 
         connectedCallback() {
@@ -34,9 +33,11 @@ export function component(name, setup) {
 
         disconnectedCallback() {
             this.lifecycle.run("destroy", this);
-            [...this._cleanup].forEach(fn => fn());
+            this._cleanup.forEach((fn) => fn());
             this._cleanup.clear();
-            [...this._eventIds].forEach(({ type, id }) => clearEventHandler(type, id));
+            this._eventIds.forEach(({ type, id }) =>
+                clearEventHandler(this, type, id)
+            );
             this._eventIds = [];
         }
 

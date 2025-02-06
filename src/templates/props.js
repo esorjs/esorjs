@@ -30,12 +30,7 @@ export function generateSpecialAttrSignals(instance) {
     instance._props = instance._props || {};
     instance._propsSetters = instance._propsSetters || {};
 
-    for (const { name, value } of instance.attributes) {
-        console.log(
-            "🚀 ~ file: props.js ~ line 19 ~ generateSpecialAttrSignals ~ name",
-            name
-        );
-        
+    for (const { name, value } of instance.attributes) {        
         if (!specialAttr(name)) continue;
         const coercedValue = coerceAttrValue(cleanAttributeValue(value));
         const [signal, setSignal] = useSignal(coercedValue);

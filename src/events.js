@@ -1,35 +1,29 @@
-import STATE from "../globals";
-import { error } from "../logger";
+import STATE from "./globals";
+import { error } from "./logger";
 
-const eventCache = new Map();
+ const eventCache = new Map();
+
+function getOrCreateMap(container, type) {
+    if (!container.has(type)) container.set(type, new Map());
+    return container.get(type);
+}
 
 export function registerEvent(type, handler) {
     if (!type || typeof handler !== "function") {
         error("Invalid event registration parameters");
         return -1;
     }
-    
-    let typeCache = eventCache.get(type);
-    if (!typeCache) {
-        typeCache = new Map();
-        eventCache.set(type, typeCache);
-    }
 
-    let handlers = STATE.globalEvents.handlersByType.get(type);
-    if (!handlers) {
-        handlers = new Map();
-        STATE.globalEvents.handlersByType.set(type, handlers);
-    }
-
+    const typeCache = getOrCreateMap(eventCache, type);
+    const handlers = getOrCreateMap(STATE.globalEvents.handlersByType, type);
     const id = STATE.globalEvents.nextId++;
 
-    // Registrar en el componente actual si existe
-    const comp = STATE.currentComponent;
-    if (comp) comp._eventIds.push({ type, id });
+     if (STATE.currentComponent) {
+        STATE.currentComponent._eventIds.push({ type, id });
+    }
 
     handlers.set(id, handler);
     typeCache.set(id, handler);
-
     return id;
 }
 

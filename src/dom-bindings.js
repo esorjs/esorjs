@@ -73,36 +73,50 @@ export function bindEvents(instance, elements) {
 }
 
 export function setupSignals(instance, signals) {
-    if (!signals) return;
-    signals.forEach(({ type, signal, bindAttr, attributeName }) => {
-        if (type === "attribute") {
-            const el = instance.shadowRoot.querySelector(`[${bindAttr}]`);
-            if (!el) return;
-            el.removeAttribute(bindAttr);
-            bindSignalToElement(instance, signal, (val) => {
-                const strVal = String(val);
-                if (el.getAttribute(attributeName) !== strVal)
-                    el.setAttribute(attributeName, strVal);
-            });
-        } else if (type === "array") {
-            const [startNode, endNode] = findCommentPlaceholders(
-                instance.shadowRoot,
-                bindAttr
-            );
-            if (!startNode || !endNode) return;
-            bindSignalToElement(instance, signal, (newVal) => {
-                const oldVal = startNode.__oldItems || [];
-                reconcileArrays(
-                    startNode,
-                    endNode,
-                    oldVal,
-                    Array.isArray(newVal) ? newVal : [],
-                    instance
+    if (!signals || signals.size === 0) return;
+
+    for (const { type, signal, bindAttr, attributeName } of signals.values()) {
+        switch (type) {
+            case "attribute":
+                handleAttributeSignal(
+                    instance,
+                    signal,
+                    bindAttr,
+                    attributeName
                 );
-            });
-        } else if (type === "text" || type === "expression") {
-            handleSignalBinding({ host: instance, type, signal, bindAttr });
+                break;
+            case "array":
+                handleArraySignal(instance, signal, bindAttr);
+                break;
+            case "text":
+            case "expression":
+                handleSignalBinding({ host: instance, type, signal, bindAttr });
+                break;
         }
+    }
+}
+
+function handleAttributeSignal(instance, signal, bindAttr, attributeName) {
+    const element = instance.shadowRoot.querySelector(`[${bindAttr}]`);
+    if (!element) return;
+    element.removeAttribute(bindAttr);
+    bindSignalToElement(instance, signal, (value) => {
+        const stringValue = String(value);
+        if (element.getAttribute(attributeName) !== stringValue)
+            element.setAttribute(attributeName, stringValue);
+    });
+}
+
+function handleArraySignal(instance, signal, bindAttr) {
+    const [startNode, endNode] = findCommentPlaceholders(
+        instance.shadowRoot,
+        bindAttr
+    );
+    if (!startNode || !endNode) return;
+    bindSignalToElement(instance, signal, (newValue) => {
+        const oldItems = startNode.__oldItems || [];
+        const newItems = Array.isArray(newValue) ? newValue : [];
+        reconcileArrays(startNode, endNode, oldItems, newItems, instance);
     });
 }
 
