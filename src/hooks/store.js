@@ -1,17 +1,14 @@
+// hooks/store.js
 import { useSignal } from "./signals";
 import { useEffect } from "./effects";
 import { error } from "../logger";
 
 const STORAGE_PREFIX = "esor-store:";
 
-/**
- * useStore: pequeño store reactivo con persistencia opcional en localStorage
- */
 export const useStore = (initialState, options = {}) => {
     const storedState = options.persist
         ? loadFromStorage(options.persist)
         : null;
-
     const [state, setState] = useSignal(storedState || initialState);
     const subscribers = new Set();
 

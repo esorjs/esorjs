@@ -10,9 +10,9 @@ export function component(name, setup) {
     class EsorComponent extends HTMLElement {
         constructor() {
             super();
-            // Se establece el Shadow DOM de forma declarativa o mediante attachShadow
+            // Configuramos el Shadow DOM (declarativo o con attachShadow)
             setupDeclarativeShadowRoot(this);
-            // Inicialización centralizada de propiedades internas
+            // Inicializamos todas las propiedades internas en una sola asignación
             Object.assign(this, {
                 _cleanup: new Set(),
                 _isUpdating: false,
@@ -20,7 +20,7 @@ export function component(name, setup) {
                 _eventIds: [],
                 lifecycle: new Lifecycle(),
             });
-            // Se asigna el componente actual al estado global y se inicializan las propiedades observables
+            // Asignamos el componente actual al estado global y configuramos la observación de propiedades
             STATE.currentComponent = this;
             initPropsAndObserve(this);
             this.lifecycle.run("beforeMount", this);
@@ -36,10 +36,11 @@ export function component(name, setup) {
             this._cleanup.forEach((fn) => fn());
             this._cleanup.clear();
             this._eventIds.forEach(({ type, id }) =>
-                clearEventHandler(this, type, id)
+                clearEventHandler(type, id)
             );
             this._eventIds = [];
         }
+
         _render() {
             withCurrentComponent(this, () => {
                 this.lifecycle.run("beforeUpdate", this);
@@ -48,7 +49,6 @@ export function component(name, setup) {
                     typeof setupResult === "function"
                         ? setupResult()
                         : setupResult || {};
-
                 if (!this.shadowRoot.hasChildNodes()) {
                     this.shadowRoot.appendChild(cachedTemplate(name, template));
                 }
@@ -59,7 +59,6 @@ export function component(name, setup) {
             });
         }
     }
-
     customElements.define(name, EsorComponent);
     return EsorComponent;
 }
