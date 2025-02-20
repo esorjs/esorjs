@@ -62,35 +62,6 @@ component('my-counter', () => {
 
 ---
 
-## Integración con Vite/Rollup
-
-Esor incluye un plugin para Vite/Rollup que realiza optimizaciones en tiempo de build (como la minificación de templates y eliminación de código de depuración). Puedes configurarlo junto con un alias para apuntar a la versión optimizada del framework.
-
-Ejemplo de configuración en `vite.config.js`:
-
-```javascript
-import { defineConfig } from 'vite';
-import path from 'path';
-import esorPlugin from './vite-plugin-esor';
-
-export default defineConfig({
-  plugins: [
-    esorPlugin({
-      // Opciones personalizadas para el plugin, si se requieren
-    })
-  ],
-  resolve: {
-    alias: {
-      esor: path.resolve(__dirname, "./dist/esor.min.js")
-    }
-  }
-});
-```
-
-Esta configuración garantiza que, en producción, se use la versión minificada de Esor y se apliquen las optimizaciones en los templates para mejorar el rendimiento.
-
----
-
 ## Documentación
 
 Para obtener más detalles sobre la API, revisa la [documentación oficial](https://github.com/esorjs/esor/wiki).
