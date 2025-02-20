@@ -14,9 +14,9 @@ export function wrapArray(arr, read) {
                     if (Array.isArray(result)) {
                         result.__signalArray = true;
                         result.__signal = read;
-                        if (args.length > 0 && typeof args[0] === "function") {
+                        if (args.length > 0 && typeof args[0] === "function")
                             result.__mapFn = args[0];
-                        }
+
                         return wrapArray(result, read);
                     }
                     return result;

@@ -5,26 +5,30 @@
 <p align="center"><strong>Rápido, ligero y moderno</strong></p>
 
 # Esor
-[![Version](https://img.shields.io/npm/v/esor.svg)](https://www.npmjs.com/package/esor)
-[![Build Status](https://github.com/esorjs/esor/actions/workflows/ci.yml/badge.svg)](https://github.com/esorjs/esor/actions)
-[![License](https://img.shields.io/npm/l/esor.svg)](https://github.com/esorjs/esor/blob/main/LICENSE)
+
+[![Version](https://img.shields.io/npm/v/esor.svg)](https://www.npmjs.com/package/esor)  
+[![License](https://img.shields.io/npm/l/esor.svg)](https://github.com/esorjs/esor/blob/main/LICENSE)  
 [![Downloads](https://img.shields.io/npm/dm/esor.svg)](https://www.npmjs.com/package/esor)
 
-Esor es un framework de JavaScript ligero y eficiente para construir interfaces de usuario reactivas.
+Esor es un framework de JavaScript ligero y eficiente para construir interfaces de usuario reactivas, aprovechando Web Components nativos, reactividad basada en señales y un motor de templating optimizado.
 
-## Carateristicas Principales
+---
 
-- Está construido sobre Web Components nativos.
-- Usa un sistema de reactividad basado en señales (signals) inspirado en SolidJs.
-- Implementa un motor de templating con sintaxis similar a lit-html
-- Maneja la gestión de estado a través de stores.
-- Sistema de reconciliación de arrays y actualización eficiente del DOM
-- Manejo de atributos y propiedades.
-- Sistema de eventos personalizado.
+## Características Principales
+
+- **Web Components Nativos:** Crea componentes encapsulados utilizando Shadow DOM.
+- **Reactividad basada en Señales:** Inspirado en SolidJS, con funciones como `signal`, `effect` y `computed`.
+- **Motor de Templating Moderno:** Sintaxis similar a lit-html para definir templates de forma declarativa.
+- **Gestión de Estado Sencilla:** Soporte para stores que facilitan el manejo de estados globales.
+- **Actualización Eficiente del DOM:** Sistema de reconciliación de arrays y optimizaciones para minimizar re-renderizados.
+- **Eventos y Ciclo de Vida Personalizados:** Define hooks y gestiona eventos de manera modular.
+- **Plugin para Vite/Rollup:** Optimiza la carga y transformación de templates, mejorando el rendimiento en producción.
+
+---
 
 ## Instalación
 
-Puedes instalar Esor usando npm o yarn:
+Instala Esor mediante npm o yarn:
 
 ```bash
 npm install esor
@@ -32,33 +36,73 @@ npm install esor
 yarn add esor
 ```
 
+---
+
 ## Uso Básico
 
-Aquí tienes un ejemplo básico de un counter con Esor:
+A continuación, un ejemplo de un contador usando la nueva API:
 
 ```javascript
-import { component, html, useSignal } from 'esor';
+import { component, html, signal } from 'esor';
 
 component('my-counter', () => {
-  const [count, setCount] = useeSignal(0);
+  const count = signal(0);
 
   return html`
     <div>
-      <p>Contador: ${count}</p>
-      <button @click=${() => setCount(count+ 1)}>Incrementar</button>
+      <p>Contador: ${count()}</p>
+      <button @click=${() => count(count() + 1)}>Incrementar</button>
     </div>
   `;
 });
 ```
 
+> **Nota:**  
+> En la nueva API, la función `signal` se utiliza para crear valores reactivos. Para obtener el valor actual, se invoca como función (e.g., `count()`), y para actualizarlo se llama pasando el nuevo valor (`count(nuevoValor)`).
+
+---
+
+## Integración con Vite/Rollup
+
+Esor incluye un plugin para Vite/Rollup que realiza optimizaciones en tiempo de build (como la minificación de templates y eliminación de código de depuración). Puedes configurarlo junto con un alias para apuntar a la versión optimizada del framework.
+
+Ejemplo de configuración en `vite.config.js`:
+
+```javascript
+import { defineConfig } from 'vite';
+import path from 'path';
+import esorPlugin from './vite-plugin-esor';
+
+export default defineConfig({
+  plugins: [
+    esorPlugin({
+      // Opciones personalizadas para el plugin, si se requieren
+    })
+  ],
+  resolve: {
+    alias: {
+      esor: path.resolve(__dirname, "./dist/esor.min.js")
+    }
+  }
+});
+```
+
+Esta configuración garantiza que, en producción, se use la versión minificada de Esor y se apliquen las optimizaciones en los templates para mejorar el rendimiento.
+
+---
+
 ## Documentación
 
-Para más información, visita la [documentación oficial](https://github.com/esorjs/esor/wiki).
+Para obtener más detalles sobre la API, revisa la [documentación oficial](https://github.com/esorjs/esor/wiki).
+
+---
 
 ## Contribuir
 
-Las contribuciones son bienvenidas. Por favor, lee nuestras [guías de contribución](https://github.com/esorjs/esor/blob/main/CONTRIBUTING.md) antes de enviar un pull request.
+¡Las contribuciones son bienvenidas! Consulta nuestras [guías de contribución](https://github.com/esorjs/esor/blob/main/CONTRIBUTING.md) antes de enviar un pull request.
+
+---
 
 ## Licencia
 
-Este proyecto está bajo la licencia MIT. Consulta el archivo [LICENSE](https://github.com/esorjs/esor/blob/main/LICENSE) para más detalles.
+Este proyecto se distribuye bajo la licencia MIT. Consulta el archivo [LICENSE](https://github.com/esorjs/esor/blob/main/LICENSE) para más detalles.

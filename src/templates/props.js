@@ -1,28 +1,18 @@
-import { useSignal } from "../hooks/signals";
+import { signal } from "../hooks/signals";
 import { cleanAttributeValue } from "../utils/parser";
-import { specialAttr } from "./templates";
+import { specialAttr } from "./helpers";
 
 let textAreaElement;
 
-/**
- * decodeHTMLEntities:
- * Reutiliza un único <textarea> para decodificar entidades HTML.
- */
 function decodeHTMLEntities(text) {
     if (!textAreaElement) textAreaElement = document.createElement("textarea");
     textAreaElement.innerHTML = text;
     return textAreaElement.value;
 }
 
-/**
- * coerceAttrValue:
- * Convierte la cadena a su tipo adecuado (boolean, number, JSON, etc.),
- * decodificando las entidades HTML si es necesario.
- */
 function coerceAttrValue(raw) {
     if (typeof raw !== "string") return raw;
     if (raw.indexOf("&") !== -1) raw = decodeHTMLEntities(raw);
-
     const t = raw.trim();
     if (!t) return t;
     const low = t.toLowerCase();
@@ -46,44 +36,24 @@ function coerceAttrValue(raw) {
 }
 
 export function generateSpecialAttrSignals(instance) {
-    instance._props = instance._props || {};
-    instance._propsSetters = instance._propsSetters || {};
-
     for (const { name, value } of instance.attributes) {
         if (!specialAttr(name)) continue;
-        if (Object.prototype.hasOwnProperty.call(instance, name)) continue;
-
-        const coercedValue = coerceAttrValue(cleanAttributeValue(value));
-        const [signal, setSignal] = useSignal(coercedValue);
-
-        if (typeof coercedValue === "object") {
-            Object.defineProperty(instance._props, name, {
-                get: signal,
-                configurable: true,
-            });
-        } else {
-            instance._props[name] = signal;
-            instance._propsSetters[name] = setSignal;
-        }
+        const prop = coerceAttrValue(cleanAttributeValue(value));
+        instance._props[name] = signal(prop);
     }
 }
 
 export function observeAttrMutations(instance) {
-    const obs = new MutationObserver((ms) => {
-        for (const m of ms) {
-            if (m.type !== "attributes" || !specialAttr(m.attributeName))
-                continue;
-            const setter = instance._propsSetters[m.attributeName];
-            if (setter) {
-                const newValue = coerceAttrValue(
-                    instance.getAttribute(m.attributeName)
-                );
-                setter(newValue);
-            }
+    const handler = (mutationsList) => {
+        for (const { attributeName } of mutationsList) {
+            if (!specialAttr(attributeName)) continue;
+            const sig = instance._props[attributeName];
+            if (sig) sig(coerceAttrValue(instance.getAttribute(attributeName)));
         }
-    });
-    obs.observe(instance, { attributes: true, attributeOldValue: true });
-    instance._cleanup.add(() => obs.disconnect());
+    };
+    const observer = new MutationObserver(handler);
+    observer.observe(instance, { attributes: true });
+    instance._cleanup.add(() => observer.disconnect());
 }
 
 export function initPropsAndObserve(instance) {

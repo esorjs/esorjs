@@ -1,23 +1,23 @@
-// hooks/store.js
-import { useSignal } from "./signals";
-import { useEffect } from "./effects";
+import { signal, effect } from "./signals";
 import { error } from "../logger";
 
 const STORAGE_PREFIX = "esor-store:";
 
-export const useStore = (initialState, options = {}) => {
+export const store = (initialState, options = {}) => {
     const storedState = options.persist
         ? loadFromStorage(options.persist)
         : null;
-    const [state, setState] = useSignal(storedState || initialState);
+
+    const state = signal(storedState || initialState);
     const subscribers = new Set();
 
     if (options.persist) {
-        useEffect(() => {
+        // Escuchamos cambios en localStorage para sincronizar
+        effect(() => {
             const handleStorage = (e) => {
                 if (e.key === STORAGE_PREFIX + options.persist) {
                     try {
-                        setState(JSON.parse(e.newValue));
+                        state.set(JSON.parse(e.newValue));
                     } catch (err) {
                         error(`Failed to sync state: ${err.message}`);
                     }
@@ -32,7 +32,7 @@ export const useStore = (initialState, options = {}) => {
         setState(update) {
             const newState =
                 typeof update === "function" ? update(state()) : update;
-            setState(newState);
+            state.set(newState);
             if (options.persist) saveToStorage(options.persist, newState);
             subscribers.forEach((cb) => cb(newState));
         },
@@ -40,6 +40,7 @@ export const useStore = (initialState, options = {}) => {
             subscribers.add(callback);
             return () => subscribers.delete(callback);
         },
+        // Leer estado: store.getState() -> state()
         getState: state,
     };
 

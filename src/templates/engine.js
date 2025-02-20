@@ -1,100 +1,48 @@
-/**
- * engine.js
- * Module for processing template literals, generating DOM templates and injecting signals,
- * references and events dynamically. Refactored to reduce repetitive code,
- * unify attribute injection logic and simplify functions.
- */
-
 import { registerEvent } from "../events";
 import { escapeHTML } from "../utils/parser";
 
 export const PLACEHOLDER_EXPRESSION_PREFIX = "$:";
-export const ATTRIBUTES_NAMES_EVENTS = "data-esor-event-";
-export const ATTRIBUTES_NAMES_BIND = "data-esor-bind-";
+export const ATTRIBUTES_NAMES_EVENTS = "data_esor_event";
+export const ATTRIBUTES_NAMES_BIND = "data_esor_bind";
+export const ATTRIBUTES_NAMES_REFS = "data_esor_ref";
 
-// Regular expressions to detect attributes, references, events and quotes
-const attrReg = /\s(\w[\w-]*)=(["'])?(?:(?!\2).)*$/;
-const refReg = /ref=(["'])?\s*$/;
-const evtReg = /(@\w+)=(["'])?\s*$/;
-const qReg = /(["'])\s*$/;
-const rawTags = /^(script|style|textarea|title)$/i;
+const attrReg = /* @__PURE__ */ new RegExp(/\s(\w[\w-]*)=(["'])?(?:(?!\2).)*$/);
+const refReg = /* @__PURE__ */ new RegExp(/ref=(["'])?\s*$/);
+const evtReg = /* @__PURE__ */ new RegExp(/(@\w+)=(["'])?\s*$/);
+const qReg = /* @__PURE__ */ new RegExp(/["']\s*$/);
+const rawTags = /* @__PURE__ */ new RegExp(/^(script|style|textarea|title)$/i);
 
-/**
- * replaceAttribute:
- * Utility to replace in an hStr string the attribute matching the regex (regexMatch),
- * injecting name=value with safe quotes.
- * @param {string} hStr - Accumulated HTML string.
- * @param {RegExp} regexMatch - Regular expression to replace.
- * @param {string} name - Attribute name to insert.
- * @param {string} value - Attribute value.
- * @returns {string}
- */
 function replaceAttribute(hStr, regexMatch, name, value) {
-    // Detect existing end quote or use ' by default
     const q = hStr && hStr.charAt(hStr.length - 1) === '"' ? '"' : "'";
     return hStr.replace(regexMatch, `${name}=${q}${value}${q}`);
 }
 
-/**
- * removeQuote: Removes extra ending quotes.
- * @param {string} s
- * @returns {string}
- */
-function removeQuote(s) {
-    return s.replace(qReg, "");
-}
+const removeQuote = (s) => s.replace(qReg, "");
 
-/**
- * isTemplateObject: Verifies if the object has a "template" property.
- * @param {any} o
- * @returns {boolean}
- */
-export const isTemplateObject = (o) => o && typeof o === "object" && o.template;
+export const isTemplateObject = (o) =>
+    o?.template?.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
 
-/**
- * injectRef: Injects a "ref" into the HTML string (data-ref-i).
- * @param {Function} fn - Reference function.
- * @param {string} hStr - HTML string.
- * @param {number} i - Index for the ref.
- * @param {Map} refs - References map.
- */
-function injectRef(fn, hStr, i, refs) {
-    refs.set(i, fn);
-    return replaceAttribute(hStr, refReg, `data-ref-${i}`, "true");
-}
-
-/**
- * injectEvent: Injects the event handler.
- * @param {Function} fn - Handler function.
- * @param {string} eType - Event type (without @).
- * @param {string} hStr - HTML string.
- */
 function injectEvent(fn, eType, hStr) {
     const id = registerEvent(eType, fn);
-    fn.isEventHandler = true;
     return replaceAttribute(
         hStr,
         evtReg,
-        `${ATTRIBUTES_NAMES_EVENTS}${eType}`,
+        `${ATTRIBUTES_NAMES_EVENTS}-${eType}`,
         id
     );
 }
 
-/**
- * injectSignalAttr: Injects a signal into an HTML attribute
- * (closing the original attribute and adding data-bind).
- * @param {any} val
- * @param {string} aName
- * @param {string} hStr
- * @param {number} sIdx
- * @param {Map} signals
- */
+function injectRef(fn, hStr, i, refs) {
+    refs.set(i, fn);
+    return replaceAttribute(hStr, refReg, `${ATTRIBUTES_NAMES_REFS}-${i}`, i);
+}
+
 function injectSignalAttr(val, aName, hStr, sIdx, signals) {
     hStr = removeQuote(hStr);
     const quote = hStr && hStr.charAt(hStr.length - 1) === '"' ? '"' : "'";
     const initVal = typeof val === "function" ? val() : val;
     const escVal = rawTags.test(aName) ? String(initVal) : escapeHTML(initVal);
-    const bindAttr = `${ATTRIBUTES_NAMES_BIND}${sIdx}`;
+    const bindAttr = `${ATTRIBUTES_NAMES_BIND}-${sIdx}`;
     hStr += `${quote}${escVal}${quote} ${bindAttr}=${quote}true${quote}`;
     signals.set(sIdx, {
         type: "attribute",
@@ -105,14 +53,6 @@ function injectSignalAttr(val, aName, hStr, sIdx, signals) {
     return hStr;
 }
 
-/**
- * injectExpr: Injects an expression (or function) using comments as placeholders.
- * @param {any} val
- * @param {boolean} isFn
- * @param {string} hStr
- * @param {number} sIdx
- * @param {Map} signals
- */
 function injectExpr(val, isFn, hStr, sIdx, signals) {
     const bA = `${PLACEHOLDER_EXPRESSION_PREFIX}${sIdx}`;
     signals.set(sIdx, {
@@ -124,15 +64,6 @@ function injectExpr(val, isFn, hStr, sIdx, signals) {
     return `${hStr}<!--${bA}-->${escapeHTML(String(out))}<!--//${bA}-->`;
 }
 
-/**
- * injectArray: Injects an array or template-array into the template.
- * @param {any} v
- * @param {number} sIdx
- * @param {Map} signals
- * @param {string} hStr
- * @param {boolean} isSigArr
- * @param {Function} [fn]
- */
 function injectArray(v, sIdx, signals, hStr, isSigArr, fn) {
     const bind = `${PLACEHOLDER_EXPRESSION_PREFIX}${sIdx}`;
     const signalEntry = {
@@ -145,58 +76,33 @@ function injectArray(v, sIdx, signals, hStr, isSigArr, fn) {
         bindAttr: bind,
     };
     signals.set(sIdx, signalEntry);
-
     const items = Array.isArray(v) ? v : [];
     const out = items.map(processVal).join("");
     return `${hStr}<!--${bind}-->${out}<!--//${bind}-->`;
 }
 
-/**
- * processVal: Processes a value to inject it into the template.
- * @param {any} v
- */
+function processTemplateNodes(template) {
+    let output = "";
+    for (const node of template.childNodes) {
+        if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute("key")) {
+            node.setAttribute("data-key", node.getAttribute("key"));
+            node.removeAttribute("key");
+        }
+        output += node.outerHTML || node.textContent;
+    }
+    return output;
+}
+
 function processVal(v) {
     if (v == null || v === false) return "";
     if (Array.isArray(v)) return v.reduce((acc, x) => acc + processVal(x), "");
-
-    if (isTemplateObject(v)) {
-        const nodes = v.template.childNodes;
-        const fragments = [];
-        for (let i = 0, len = nodes.length; i < len; i++) {
-            const n = nodes[i];
-            if (n.nodeType === 1 && n.hasAttribute("key")) {
-                n.setAttribute("data-key", n.getAttribute("key"));
-                n.removeAttribute("key");
-            }
-            fragments.push(n.outerHTML || n.textContent);
-        }
-        return fragments.join("");
-    }
-
-    if (v?.type === "template-array") {
+    if (v instanceof SVGElement) return v.outerHTML;
+    if (isTemplateObject(v)) return processTemplateNodes(v.template);
+    if (v?.type === "template-array")
         return v.templates.reduce((a, x) => a + processVal(x), "");
-    }
-
-    if (v instanceof SVGElement) {
-        const svg = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "svg"
-        );
-        svg.appendChild(v.cloneNode(true));
-        return svg.innerHTML;
-    }
-
-    return escapeHTML(String(v));
+    return v.toString();
 }
 
-/**
- * processTemplate: Processes a template literal and its values to build:
- *   - The template content (template).
- *   - A signals map (signals).
- *   - A references map (refs).
- * @param {Array<string>} strs
- * @param  {...any} vals
- */
 function processTemplate(strs, ...vals) {
     let hStr = "";
     const sMap = new Map();
@@ -209,66 +115,43 @@ function processTemplate(strs, ...vals) {
         if (i >= vals.length) continue;
 
         const val = vals[i];
+        // Detectar si estamos en un atributo
         const aMatch = strs[i].match(attrReg);
         const inAttr = !!aMatch;
         const aName = aMatch?.[1];
-        const refMatch = hStr.match(refReg);
-        const evtMatch = hStr.match(evtReg);
 
-        // Determine if it's a ref or event
+        const refMatch = refReg.exec(hStr);
+        const evtMatch = evtReg.exec(hStr);
+
         const isRef = refMatch && typeof val === "function";
         const isEvt = evtMatch && typeof val === "function";
-        const evtType = evtMatch ? evtMatch[1].slice(1) : null;
+        const evtType = isEvt ? evtMatch[1].slice(1) : null;
 
         if (isRef) {
             hStr = injectRef(val, hStr, rIdx++, rMap);
         } else if (isEvt) {
             hStr = injectEvent(val, evtType, hStr);
         } else if ((val?.signal || typeof val === "function") && inAttr) {
-            // Signal injection in an attribute
             hStr = injectSignalAttr(val, aName, hStr, sIdx++, sMap);
         } else if (Array.isArray(val) && val.__signalArray === true) {
-            // Array with signal
             hStr = injectArray(val, sIdx++, sMap, hStr, true);
         } else if (val?.signal) {
-            // Expression: normal signal
             hStr = injectExpr(val, false, hStr, sIdx++, sMap);
         } else if (typeof val === "function") {
-            // Expression: function
             hStr = injectExpr(val, true, hStr, sIdx++, sMap);
         } else if (Array.isArray(val)) {
-            // Simple array
             hStr = injectArray(val, sIdx++, sMap, hStr, false, val);
         } else if (val != null) {
-            // Primitive value
             hStr += processVal(val);
         }
     }
 
     const t = document.createElement("template");
     t.innerHTML = hStr.trim();
+
     return { template: t.content, signals: sMap, refs: rMap };
 }
 
-/**
- * evalExpr: Evaluates a function and returns its result or null in case of error.
- * @param {Function} fn
- * @returns {any}
- */
-export function evalExpr(fn) {
-    try {
-        return fn() ?? null;
-    } catch {
-        return null;
-    }
-}
-
-/**
- * html: Main function to create templates from template literals.
- * @param {Array<string>} strs
- * @param  {...any} vals
- * @returns {Object} { template, signals, refs }
- */
 export function html(strs, ...vals) {
     return processTemplate(strs, ...vals);
 }

@@ -1,30 +1,34 @@
 import { Lifecycle } from "./lifecycle";
 import STATE, { withCurrentComponent } from "./globals";
-import { setupDeclarativeShadowRoot } from "./utils/dom";
+import {
+    findAttributesWithEsorDirectives,
+    setupDeclarativeShadowRoot,
+} from "./utils/dom";
 import { initPropsAndObserve } from "./templates/props";
-import { bindEventsInRange, setupSignals, setupRefs } from "./dom-bindings";
-import { cachedTemplate } from "./templates/templates";
+import { setupEventDelegation, setupSignals, setupRefs } from "./dom-bindings";
 import { clearEventHandler } from "./events";
+import { cachedTemplate } from "./templates/helpers";
 
 export function component(name, setup) {
     class EsorComponent extends HTMLElement {
         constructor() {
             super();
-            // Configuramos el Shadow DOM (declarativo o con attachShadow)
-            setupDeclarativeShadowRoot(this);
-            // Inicializamos todas las propiedades internas en una sola asignación
-            Object.assign(this, {
+            setupDeclarativeShadowRoot(this); // Configuramos el Shadow DOM
+            this._initEsorComponent(this);
+            this._render();
+        }
+
+        _initEsorComponent(instance) {
+            Object.assign(instance, {
                 _cleanup: new Set(),
                 _isUpdating: false,
                 _props: {},
                 _eventIds: [],
                 lifecycle: new Lifecycle(),
             });
-            // Asignamos el componente actual al estado global y configuramos la observación de propiedades
-            STATE.currentComponent = this;
-            initPropsAndObserve(this);
-            this.lifecycle.run("beforeMount", this);
-            this._render();
+            STATE.currentComponent = instance;
+            initPropsAndObserve(instance);            
+            instance.lifecycle.run("beforeMount", instance);
         }
 
         connectedCallback() {
@@ -49,12 +53,22 @@ export function component(name, setup) {
                     typeof setupResult === "function"
                         ? setupResult()
                         : setupResult || {};
+
                 if (!this.shadowRoot.hasChildNodes()) {
                     this.shadowRoot.appendChild(cachedTemplate(name, template));
                 }
+
+                const data = findAttributesWithEsorDirectives(this.shadowRoot);
+
+                if (data && data.data_esor_ref) {
+                    setupRefs(data.data_esor_ref, refs);
+                }
+
+                if (data && data.data_esor_event) {
+                    setupEventDelegation(this, data.data_esor_event);
+                }
                 setupSignals(this, signals);
-                bindEventsInRange(this);
-                setupRefs(this, refs);
+
                 this.lifecycle.run("update", this);
             });
         }

@@ -1,12 +1,10 @@
 import { component } from "./component";
 import { html } from "./templates/engine";
-import { useSignal, useBatch } from "./hooks/signals";
-import { useRef } from "./hooks/ref";
-import { useComputed } from "./hooks/signals";
-import { useMemo } from "./hooks/memo";
+import { signal, batch, computed, effect } from "./hooks/signals";
+import { ref } from "./hooks/ref";
+import { memo } from "./hooks/memo";
 import { useEmit } from "./events";
-import { useEffect } from "./hooks/effects";
-import { useStore } from "./hooks/store";
+ import { store } from "./hooks/store";
 import {
     beforeMount,
     onMount,
@@ -19,18 +17,18 @@ import {
 export {
     component,
     html,
-    useSignal,
-    useBatch,
-    useRef,
-    useComputed,
-    useMemo,
+    signal,
+    batch,
+    ref,
+    computed,
+    memo,
     useEmit,
-    useEffect,
-    useStore,
+    effect,
+    store,
     beforeMount,
     onMount,
     beforeUpdate,
     onUpdate,
     onDestroy,
-    onEffect
+    onEffect,
 };

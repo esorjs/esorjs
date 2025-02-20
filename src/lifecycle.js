@@ -7,24 +7,34 @@ export class Lifecycle {
     }
 
     #hooks(t) {
-        return this.#lc.has(t) || this.#lc.set(t, new Set()), this.#lc.get(t);
+        if (!this.#lc.has(t)) this.#lc.set(t, new Set());
+        return this.#lc.get(t);
     }
 
     add(t, fn) {
         this.#hooks(t).add(fn);
         return () => this.#lc.get(t)?.delete(fn);
     }
+
     run(t, ctx) {
-        this.#lc.get(t)?.forEach((fn) => {
-            try {
-                fn.call(ctx);
-            } catch (e) {
-                ctx._catchError(e);
+        const hooks = this.#lc.get(t);
+        if (hooks?.size) {
+            for (const fn of hooks) {
+                try {
+                    fn.call(ctx);
+                } catch (e) {
+                    // Verificar si ctx tiene el método _catchError
+                    (typeof ctx._catchError === "function"
+                        ? ctx._catchError
+                        : console.error)("Error in lifecycle hook:", e);
+                }
             }
-        });
+        }
     }
+
     clear(t) {
-        t ? this.#lc.delete(t) : this.#lc.clear();
+        if (t) this.#lc.delete(t);
+        else this.#lc.clear();
     }
 }
 

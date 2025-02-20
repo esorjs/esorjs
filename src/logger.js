@@ -8,9 +8,10 @@ const STYLES = {
 
 const log = (type = "info", message = "", ...args) => {
     if (!STYLES[type]) type = "info";
+    const capitalType = type.charAt(0).toUpperCase() + type.slice(1);
 
     console.groupCollapsed(
-        `%c[ESOR ${STYLES[type].icon}${capitalize(type)}] ${message}`,
+        `%c[ESOR ${STYLES[type].icon}${capitalType}] ${message}`,
         `color: ${STYLES[type].color}; font-weight: bold;`
     );
 
@@ -24,8 +25,6 @@ const log = (type = "info", message = "", ...args) => {
     console[type === "error" ? "trace" : "debug"]();
     console.groupEnd();
 };
-
-const capitalize = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "");
 
 export const info = (...args) => log("info", ...args);
 export const warn = (...args) => log("warn", ...args);

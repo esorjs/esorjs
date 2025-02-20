@@ -237,13 +237,20 @@ function createNode(item, key) {
         node.textContent = String(item);
     }
 
-    if (isValidDOMNode(node)) {
-        node.setAttribute("data-key", key);
-    }
-
+    if (isValidDOMNode(node)) node.setAttribute("data-key", key);
     return node;
 }
 
+export const moveBefore = (parent, newNode, referenceNode) => {
+    try {
+        return parent.moveBefore(newNode, referenceNode);
+    } catch {
+        return parent.insertBefore(newNode, referenceNode);
+    }
+};
+
+//This concept is Jonathan Reinink - thanks!
+// https://github.com/WebReflection/udomdiff/blob/master/index.js
 function ddiff(parent, current, newList, refNode) {
     let aStart = 0,
         aEnd = current.length,
