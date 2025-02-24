@@ -1,34 +1,20 @@
-const arraysCache = new WeakMap();
-
-/**
- * Función genérica para envolver arrays en un Proxy que
- * intercepte cualquier acceso y los haga reactivos.
- */
 export function wrapArray(arr, read) {
-    if (arr && arr.__signalArray === true) return arr;
-    if (arraysCache.has(arr)) return arraysCache.get(arr);
+    if (arr?.__signalArray === true) return arr;
 
-    const proxy = new Proxy(arr, {
+    return new Proxy(arr, {
         get(target, prop, receiver) {
             const value = Reflect.get(target, prop, receiver);
-            if (typeof value === "function") {
-                return function (...args) {
-                    const result = value.apply(target, args);
-                    if (Array.isArray(result)) {
-                        result.__signalArray = true;
-                        result.__signal = read;
-                        if (args.length > 0 && typeof args[0] === "function")
-                            result.__mapFn = args[0];
+            if (typeof value !== "function") return value;
 
-                        return wrapArray(result, read);
-                    }
-                    return result;
-                };
-            }
-            return value;
+            return function (...args) {
+                const result = value.apply(target, args);
+                if (!Array.isArray(result)) return result;
+
+                result.__signalArray = true;
+                result.__signal = read;
+                result.__mapFn = args[0]; // Siempre asigna, undefined si no hay función
+                return wrapArray(result, read);
+            };
         },
     });
-
-    arraysCache.set(arr, proxy);
-    return proxy;
 }
