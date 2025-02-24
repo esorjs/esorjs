@@ -178,23 +178,12 @@ function copyEventAttributes(oldNode, newNode) {
 
 function getItemKey(item, index) {
     if (item?.key !== undefined) return `key-${item.key}`;
+    if (item?.id) return `item-${item.id}`;
     if (item?.template) {
         const el = item.template.firstElementChild;
-        if (item.id) return `item-${item.id}`;
-        if (el && isValidDOMNode(el)) {
-            const keyAttr = el.getAttribute("key");
-            if (keyAttr) return keyAttr;
-        }
-        return `template-${index}`;
+        if (el && el.hasAttribute("key")) return el.getAttribute("key");
     }
-    if (item && typeof item === "object") {
-        if (item.id) return `item-${item.id}`;
-        try {
-            return `item-${index}-${JSON.stringify(item)}`;
-        } catch {
-            return `item-${index}`;
-        }
-    }
+
     return `item-${index}-${String(item)}`;
 }
 
