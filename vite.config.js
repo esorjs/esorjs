@@ -1,4 +1,4 @@
- import { defineConfig } from "vite";
+import { defineConfig } from "vite";
 import esorPlugin from "./vite-plugin-esor";
 import path from "path";
 

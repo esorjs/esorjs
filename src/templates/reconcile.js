@@ -175,16 +175,17 @@ function copyEventAttributes(oldNode, newNode) {
 }
 
 function getItemKey(item, index) {
-  if (item != null && typeof item === "object") {
-    // Prioridad: si existe "key", úsala
-    if (item.key !== undefined) return `key-${item.key}`;
-    // Si existe "id", se utiliza
+  if (item && typeof item === "object") {
+    // Prioridad: si existe "key", se utiliza (incluso si es null, según convenga)
+    if ("key" in item) return `key-${item.key}`;
+    // Si existe "id" y es un valor "truthy", se utiliza
     if (item.id) return `item-${item.id}`;
     // Si se provee un template, se extrae el key del primer elemento (si lo tiene)
     if (item.template) {
       const el = item.template.firstElementChild;
-      if (el?.hasAttribute("key")) return el.getAttribute("key");
-      return `template-${index}`;
+      return el && el.hasAttribute("key")
+        ? el.getAttribute("key")
+        : `template-${index}`;
     }
     // Si es un objeto sin key, id o template, se intenta serializar
     try {
