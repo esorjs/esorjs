@@ -1,4 +1,5 @@
 import { registerEvent } from "../events";
+import STATE from "../globals";
 import { escapeHTML } from "../utils/parser";
 
 export const PLACEHOLDER_EXPRESSION_PREFIX = "$:";
@@ -23,7 +24,8 @@ export const isTemplateObject = (o) =>
     o?.template?.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
 
 function injectEvent(fn, eType, hStr) {
-    const id = registerEvent(eType, fn);
+    const component = STATE.currentComponent;
+    const id = registerEvent(component, eType, fn);
     return replaceAttribute(
         hStr,
         evtReg,
@@ -152,6 +154,16 @@ function processTemplate(strs, ...vals) {
     return { template: t.content, signals: sMap, refs: rMap };
 }
 
+const templateCache = new WeakMap();
+
 export function html(strs, ...vals) {
+    if (vals.length === 0 && strs.raw) {
+        if (templateCache.has(strs)) return templateCache.get(strs);
+
+        const result = processTemplate(strs, ...vals);
+        templateCache.set(strs, result);
+        return result;
+    }
+
     return processTemplate(strs, ...vals);
 }

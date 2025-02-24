@@ -31,17 +31,26 @@ function signal(initialValue) {
     return alienSignal(initialValue);
 }
 
- function batch(fn) {
-    if (STATE.batchActive) return fn();
+function batch(fn) {
+    if (STATE.batchQueue) return fn();
 
-    STATE.batchActive = true;
+    STATE.batchQueue = new Set();
     startBatch();
     try {
-        return fn();
+        fn();
+        flushBatch();
     } finally {
         endBatch();
-        STATE.batchActive = false;
+        STATE.batchQueue = null;
     }
+}
+
+function flushBatch() {
+    const effects = STATE.batchQueue;
+    STATE.batchQueue = null;
+    for (const effect of effects) effect();
+    STATE.batchQueue.forEach((effect) => effect());
+    STATE.batchQueue.clear();
 }
 
 export { signal, computed, effect, batch };

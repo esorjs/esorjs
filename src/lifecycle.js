@@ -17,19 +17,21 @@ export class Lifecycle {
     }
 
     run(t, ctx) {
-        const hooks = this.#lc.get(t);
-        if (hooks?.size) {
-            for (const fn of hooks) {
-                try {
-                    fn.call(ctx);
-                } catch (e) {
-                    // Verificar si ctx tiene el método _catchError
-                    (typeof ctx._catchError === "function"
-                        ? ctx._catchError
-                        : console.error)("Error in lifecycle hook:", e);
+        queueMicrotask(() => {
+            const hooks = this.#lc.get(t);
+            if (hooks?.size) {
+                for (const fn of hooks) {
+                    try {
+                        fn.call(ctx);
+                    } catch (e) {
+                        // Verificar si ctx tiene el método _catchError
+                        (typeof ctx._catchError === "function"
+                            ? ctx._catchError
+                            : console.error)("Error in lifecycle hook:", e);
+                    }
                 }
             }
-        }
+        });
     }
 
     clear(t) {

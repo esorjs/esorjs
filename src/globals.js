@@ -3,6 +3,7 @@ const STATE = {
     currentEffect: null,
     currentComponent: null,
     pendingEffects: new Set(),
+    batchQueue: new Set(),
     isEffectsFlushing: false,
     globalEvents: {
         handlersByType: new Map(),

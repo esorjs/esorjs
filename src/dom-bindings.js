@@ -7,11 +7,8 @@ import { handleSignalBinding } from "./templates/helpers";
 import { ATTRIBUTES_NAMES_EVENTS } from "./templates/engine";
 
 export function setupEventDelegation(instance, eventAttrs) {
-    if (!instance?.shadowRoot)
-        throw new Error("Invalid instance or missing shadowRoot");
-
-    const shadow = instance.shadowRoot;
-    const eventHandlers = new Map();
+    const shadow = instance?.shadowRoot;
+    if (!shadow) return;
 
     const eventTypes = new Set();
     for (const attr of eventAttrs) {
@@ -20,40 +17,28 @@ export function setupEventDelegation(instance, eventAttrs) {
     }
 
     for (const evtType of eventTypes) {
-        const handler = (event) => {
-            let el = event.target;
-            const path = [];
-
-            while (el && el !== shadow) {
-                path.push(el);
-                el = el.parentNode;
-            }
-
-            for (const element of path) {
-                const attr = element.getAttributeNode(
-                    `${ATTRIBUTES_NAMES_EVENTS}-${evtType}`
+        const listener = (event) => {
+            const target = event.target;
+            if (target.hasAttribute(`${ATTRIBUTES_NAMES_EVENTS}-${evtType}`)) {
+                const handlerId = Number(
+                    target.getAttribute(`${ATTRIBUTES_NAMES_EVENTS}-${evtType}`)
                 );
-                if (!attr) continue;
-
-                const handlerId = Number(attr.value);
-                const fn = getEventHandler(evtType, handlerId);
-                if (typeof fn === "function") {
+                const handler = getEventHandler(instance, handlerId);
+                if (typeof handler === "function") {
                     withCurrentComponent(instance, () => {
-                        const result = fn.call(instance, event);
-                        if (result === false) event.stopPropagation();
+                        handler.call(instance, event);
                     });
-                    break;
                 }
             }
         };
 
-        shadow.addEventListener(evtType, handler, {
+        shadow.addEventListener(evtType, listener, {
             passive: false,
             capture: true,
         });
-        eventHandlers.set(evtType, handler);
+        instance._eventHandlers = instance._eventHandlers || new Map();
+        instance._eventHandlers.set(evtType, listener);
     }
-    instance._eventHandlers = eventHandlers;
 }
 
 export function setupRefs(refAttrs, refMap) {

@@ -1,11 +1,14 @@
+const arraysCache = new WeakMap();
+
 /**
  * Función genérica para envolver arrays en un Proxy que
  * intercepte cualquier acceso y los haga reactivos.
  */
 export function wrapArray(arr, read) {
     if (arr && arr.__signalArray === true) return arr;
+    if (arraysCache.has(arr)) return arraysCache.get(arr);
 
-    return new Proxy(arr, {
+    const proxy = new Proxy(arr, {
         get(target, prop, receiver) {
             const value = Reflect.get(target, prop, receiver);
             if (typeof value === "function") {
@@ -25,4 +28,7 @@ export function wrapArray(arr, read) {
             return value;
         },
     });
+
+    arraysCache.set(arr, proxy);
+    return proxy;
 }
