@@ -4,15 +4,6 @@ import {
     ATTRIBUTES_NAMES_REFS,
 } from "../templates/engine";
 
-export function valuesChanged(val1, val2) {
-    return !Object.is(val1, val2);
-}
-
-export const getDocumentFragment = (e) =>
-    (e instanceof DocumentFragment && e) ||
-    e?.content?.cloneNode() ||
-    document.createDocumentFragment();
-
 export function removeChildNodesBetween(startNode, endNode) {
     let node = startNode.nextSibling;
     while (node && node !== endNode) {

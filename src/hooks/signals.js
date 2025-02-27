@@ -9,38 +9,38 @@ import { wrapArray } from "./arrays";
 import STATE from "../globals";
 
 function signal(initialValue) {
-    if (Array.isArray(initialValue)) {
-        const sig = alienSignal(initialValue);
-        let reactiveArray = wrapArray(initialValue, () => sig());
-        reactiveArray.__signalArray = true;
+    if (!Array.isArray(initialValue)) return alienSignal(initialValue);
 
-        // Function acting as getter (without arguments) or setter (with argument)
-        const func = (...args) => {
-            if (args.length > 0) {
-                const newVal = args[0];
-                sig(newVal);
-                reactiveArray = wrapArray(newVal, () => sig());
-                reactiveArray.__signalArray = true;
-                return reactiveArray;
-            }
-            return reactiveArray;
-        };
+    const sig = alienSignal(initialValue);
+    let reactiveArray = wrapArray(initialValue, () => sig());
 
-        return func;
+    function arraySignal(...args) {
+        if (args.length > 0) {
+            const newVal = args[0];
+            if (Object.is(newVal, sig())) return reactiveArray;
+
+            sig(newVal);
+            reactiveArray = wrapArray(newVal, () => sig());
+        }
+        return reactiveArray;
     }
-    return alienSignal(initialValue);
+
+    return Object.assign(arraySignal, { __signalArray: true });
 }
 
 function batch(fn) {
     if (STATE.batchQueue) return fn();
 
+    STATE.isBatching = true;
     STATE.batchQueue = new Set();
     startBatch();
+
     try {
         fn();
-        flushBatch();
     } finally {
+        flushBatch();
         endBatch();
+        STATE.isBatching = false;
         STATE.batchQueue = null;
     }
 }

@@ -35,7 +35,7 @@ function coerceAttrValue(raw) {
     }
 }
 
-export function generateSpecialAttrSignals(instance) {
+function generateSpecialAttrSignals(instance) {
     for (const { name, value } of instance.attributes) {
         if (!specialAttr(name)) continue;
         const prop = coerceAttrValue(cleanAttributeValue(value));
@@ -43,7 +43,7 @@ export function generateSpecialAttrSignals(instance) {
     }
 }
 
-export function observeAttrMutations(instance) {
+function observeAttrMutations(instance) {
     const handler = (mutationsList) => {
         for (const { attributeName } of mutationsList) {
             if (!specialAttr(attributeName)) continue;

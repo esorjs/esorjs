@@ -5,30 +5,33 @@ import {
     setupDeclarativeShadowRoot,
 } from "./utils/dom";
 import { initPropsAndObserve } from "./templates/props";
-import { setupEventDelegation, setupSignals, setupRefs } from "./dom-bindings";
+import {
+    setupEventDelegation,
+    setupSignals,
+    setupRefs,
+} from "./templates/dom-bindings";
 import { clearAllEventHandlers } from "./events";
-import { cachedTemplate } from "./templates/helpers";
 
 export function component(name, setup) {
     class EsorComponent extends HTMLElement {
         constructor() {
             super();
-            setupDeclarativeShadowRoot(this); // Configuramos el Shadow DOM
-            this._initEsorComponent(this);
+            setupDeclarativeShadowRoot(this);
+            this._initComponent();
             this._render();
         }
 
-        _initEsorComponent(instance) {
-            Object.assign(instance, {
+        _initComponent() {
+            Object.assign(this, {
                 _cleanup: new Set(),
                 _isUpdating: false,
                 _props: {},
                 _eventIds: [],
                 lifecycle: new Lifecycle(),
             });
-            STATE.currentComponent = instance;
-            initPropsAndObserve(instance);
-            instance.lifecycle.run("beforeMount", instance);
+            STATE.currentComponent = this;
+            initPropsAndObserve(this);
+            this.lifecycle.run("beforeMount", this);
         }
 
         connectedCallback() {
@@ -39,20 +42,33 @@ export function component(name, setup) {
             this.lifecycle.run("destroy", this);
             this._cleanup.forEach((fn) => fn());
             this._cleanup.clear();
-            clearAllEventHandlers(this); // Limpiar todos los handlers
+
+            this._props = null;
+            this._eventIds = null;
+
+            STATE.currentComponent = null;
+            clearAllEventHandlers(this);
+
+            if (this._eventHandlers) {
+                this._eventHandlers.forEach((listener, type) =>
+                    this.shadowRoot.removeEventListener(type, listener)
+                );
+                this._eventHandlers.clear();
+            }
         }
 
         _render() {
             withCurrentComponent(this, () => {
                 this.lifecycle.run("beforeUpdate", this);
-                const setupResult = setup.call(this, this._props);
+                const result =
+                    typeof setup === "function"
+                        ? setup.call(this, this._props)
+                        : setup;
                 const { template, signals, refs } =
-                    typeof setupResult === "function"
-                        ? setupResult()
-                        : setupResult || {};
+                    typeof result === "function" ? result() : result || {};
 
-                if (!this.shadowRoot.hasChildNodes()) {
-                    this.shadowRoot.appendChild(cachedTemplate(name, template));
+                if (!this.shadowRoot.hasChildNodes() && template) {
+                    this.shadowRoot.appendChild(template.cloneNode(true));
                 }
 
                 const data = findAttributesWithEsorDirectives(this.shadowRoot);
@@ -61,8 +77,8 @@ export function component(name, setup) {
                     if (data.data_esor_event)
                         setupEventDelegation(this, data.data_esor_event);
                 }
+                
                 setupSignals(this, signals);
-
                 this.lifecycle.run("update", this);
             });
         }

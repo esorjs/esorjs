@@ -43,7 +43,7 @@ function injectSignalAttr(val, aName, hStr, sIdx, signals) {
     hStr = removeQuote(hStr);
     const quote = hStr && hStr.charAt(hStr.length - 1) === '"' ? '"' : "'";
     const initVal = typeof val === "function" ? val() : val;
-    const escVal = rawTags.test(aName) ? String(initVal) : escapeHTML(initVal);
+    const escVal = rawTags.test(aName) ? String(initVal) : initVal;
     const bindAttr = `${ATTRIBUTES_NAMES_BIND}-${sIdx}`;
     hStr += `${quote}${escVal}${quote} ${bindAttr}=${quote}true${quote}`;
     signals.set(sIdx, {
@@ -154,16 +154,16 @@ function processTemplate(strs, ...vals) {
     return { template: t.content, signals: sMap, refs: rMap };
 }
 
-const templateCache = new WeakMap();
+const templateCache = new Map();
 
-export function html(strs, ...vals) {
-    if (vals.length === 0 && strs.raw) {
-        if (templateCache.has(strs)) return templateCache.get(strs);
+export function html(statics, ...vals) {
+    if (vals.length === 0 && statics.raw) {
+        if (templateCache.has(statics)) return templateCache.get(statics);
 
-        const result = processTemplate(strs, ...vals);
-        templateCache.set(strs, result);
+        const result = processTemplate(statics);
+        templateCache.set(statics, result);
         return result;
     }
 
-    return processTemplate(strs, ...vals);
+    return processTemplate(statics, ...vals);
 }
