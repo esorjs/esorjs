@@ -11,14 +11,14 @@ export function reconcileArrays(
         newArr = [...newItems];
     const parent = endNode.parentNode;
     const currentNodes = collectNodes(startNode, endNode);
-    const newNodes = createOrReuseNodes(newArr, currentNodes, oldArr);
 
-    // Si las listas son idénticas, no hay nada que actualizar.
-    if (
-        oldArr.length === newArr.length &&
-        oldArr.every((item, i) => item === newArr[i])
-    )
-        return;
+    // Función auxiliar para determinar si las listas son iguales
+    const arraysEqual = (a, b) =>
+        a.length === b.length && a.every((item, i) => item === b[i]);
+
+    if (arraysEqual(oldArr, newArr)) return;
+
+    const newNodes = createOrReuseNodes(newArr, currentNodes, oldArr);
 
     batch(() => {
         ddiff(parent, currentNodes, newNodes, endNode);

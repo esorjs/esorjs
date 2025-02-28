@@ -27,6 +27,7 @@ export function component(name, setup) {
                 _isUpdating: false,
                 _props: {},
                 _eventIds: [],
+                _eventHandlers: new Map(),
                 lifecycle: new Lifecycle(),
             });
             STATE.currentComponent = this;
@@ -40,21 +41,24 @@ export function component(name, setup) {
 
         disconnectedCallback() {
             this.lifecycle.run("destroy", this);
+            this._cleanupComponent();
+            clearAllEventHandlers(this);
+        }
+
+        _cleanupComponent() {
             this._cleanup.forEach((fn) => fn());
             this._cleanup.clear();
-
             this._props = null;
             this._eventIds = null;
 
-            STATE.currentComponent = null;
-            clearAllEventHandlers(this);
-
             if (this._eventHandlers) {
-                this._eventHandlers.forEach((listener, type) =>
-                    this.shadowRoot.removeEventListener(type, listener)
-                );
+                this._eventHandlers.forEach((listener, type) => {
+                    this.shadowRoot.removeEventListener(type, listener);
+                });
                 this._eventHandlers.clear();
             }
+
+            STATE.currentComponent = null;
         }
 
         _render() {
@@ -77,7 +81,6 @@ export function component(name, setup) {
                     if (data.data_esor_event)
                         setupEventDelegation(this, data.data_esor_event);
                 }
-                
                 setupSignals(this, signals);
                 this.lifecycle.run("update", this);
             });
