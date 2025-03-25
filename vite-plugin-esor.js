@@ -13,7 +13,7 @@ export default function esorPlugin(options = {}) {
     async transform(code, id) {
       if (!filter(id)) return null;
 
-      // Calculamos un hash del contenido para la caché
+      // Calcula un hash del contenido para la caché
       const hash = crypto.createHash("md5").update(code).digest("hex");
       if (cache.has(id) && cache.get(id).hash === hash) {
         return cache.get(id).result;
@@ -24,6 +24,7 @@ export default function esorPlugin(options = {}) {
       const regex = /html`([\s\S]*?)`/g;
       let match;
 
+      // Reemplaza las plantillas HTML minificadas
       while ((match = regex.exec(code)) !== null) {
         const [fullMatch, templateContent] = match;
 
@@ -39,16 +40,14 @@ export default function esorPlugin(options = {}) {
             minifyJS: true,
           });
         } catch {
-          // Si falla la minificación, usar una versión simple
+          // Si falla la minificación, se utiliza una versión simple
           minified = templateContent
             .replace(/(\r\n|\n|\r)/gm, " ")
             .replace(/\s+/g, " ")
             .trim();
         }
 
-        // También podemos eliminar expresiones de debug si las hubiera
         const optimized = `html\`${minified}\``;
-
         if (optimized !== fullMatch) {
           magicString.overwrite(
             match.index,
@@ -63,8 +62,15 @@ export default function esorPlugin(options = {}) {
       if (process.env.NODE_ENV === "production") {
         const debugRegex =
           /^[ \t]*console\.(log|debug|warn|info)\(.*?\);?[ \t]*\r?\n/gm;
-        magicString.replace(debugRegex, "");
-        hasModifications = true;
+        // Usamos matchAll para obtener todas las coincidencias y removemos en orden inverso
+        const matches = [...code.matchAll(debugRegex)];
+        for (let i = matches.length - 1; i >= 0; i--) {
+          const m = matches[i];
+          const start = m.index;
+          const end = start + m[0].length;
+          magicString.remove(start, end);
+          hasModifications = true;
+        }
       }
 
       if (hasModifications) {
