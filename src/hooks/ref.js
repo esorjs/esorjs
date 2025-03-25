@@ -1,10 +1,10 @@
+/**
+ * Creates a mutable reference to a value.
+ *
+ * @param {any} [initialValue=null] - The initial value for the reference.
+ * @returns {Function} A getter/setter function for the reference value.
+ */
 export function ref(initialValue = null) {
     let current = initialValue;
-    const refFn = (v) => (v !== undefined ? (current = v) : current);
-    Object.defineProperty(refFn, "current", {
-        get: () => current,
-        set: (v) => (current = v),
-        enumerable: true,
-    });
-    return refFn;
+    return (v) => (v !== undefined ? (current = v) : current);
 }

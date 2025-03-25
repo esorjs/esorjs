@@ -18,9 +18,9 @@ component('my-component', () => {
 Esor utiliza un sistema de reactividad basado en señales (signals). Puedes crear señales y efectos para manejar el estado reactivo.
 
 ```javascript
-import { useSignal, onMount } from 'esor';
+import { signal, onMount } from 'esor';
 
-const [count, setCount] = useSignal(0);
+const count = signal(0);
 
 onMount(() => {
   console.log(`El contador es: ${count()}`);

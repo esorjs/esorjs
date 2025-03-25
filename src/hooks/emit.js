@@ -1,13 +1,11 @@
-import STATE from "../globals";
-import { error } from "../logger";
-
-export function useEmit(name, detail) {
-    const comp = STATE.currentComponent;
-    if (!comp) {
-        error("useEmit must be used within a component");
-        return null;
-    }
-
+/**
+ * Emits a custom event with the given name and detail
+ * @param {string} name - name of the event
+ * @param {*} detail - detail of the event
+ * @param {EventTarget} [target=null] - target of the event
+ * @returns {CustomEvent} - the emitted event
+ */
+export function emit(name, detail, target = null) {
     const event = new CustomEvent(name, {
         detail,
         bubbles: true,
@@ -15,13 +13,6 @@ export function useEmit(name, detail) {
         cancelable: true,
     });
 
-    event.__esor = {
-        name,
-        detail,
-        receivedBy: [],
-        timestamp: Date.now(),
-    };
-
-    comp.dispatchEvent(event);
+    if (target) target.dispatchEvent(event);
     return event;
 }

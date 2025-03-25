@@ -1,91 +1,41 @@
-import {
-    ATTRIBUTES_NAMES_BIND,
-    ATTRIBUTES_NAMES_EVENTS,
-    ATTRIBUTES_NAMES_REFS,
-} from "../templates/engine";
+/**
+ * Marks a node to identify it as system-generated
+ * @param {Node} node - The node to be marked
+ * @returns {Node} The same node, allowing for chaining
+ */
 
-export function removeChildNodesBetween(startNode, endNode) {
-    let node = startNode.nextSibling;
-    while (node && node !== endNode) {
-        const next = node.nextSibling;
-        node.parentNode.removeChild(node);
-        node = next;
-    }
+export function markNode(node) {
+    if (node) node.__nodeGroups = true;
+    return node;
 }
 
-let placeholderCache = new WeakMap();
-
-export function findCommentPlaceholders(root, attr) {
-    if (placeholderCache.has(root)) {
-        const cached = placeholderCache.get(root)[attr];
-        if (cached) return cached;
-    }
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT);
-    let start = null,
-        end = null;
-    while (walker.nextNode() && !end) {
-        const current = walker.currentNode;
-        if (!start && current.nodeValue === attr) start = current;
-        else if (start && current.nodeValue === `//${attr}`) end = current;
-    }
-
-    const result = [start, end];
-    placeholderCache.set(root, {
-        ...placeholderCache.get(root),
-        [attr]: result,
-    });
-    return result;
+/**
+ * Creates a DocumentFragment from an array of nodes, marking each node
+ * to identify it as system-generated.
+ * @param {Array<Node>} nodes - Nodes to include in the fragment.
+ * @returns {DocumentFragment} The created DocumentFragment containing the marked nodes.
+ */
+export function markedFragment(nodes) {
+    return createFragment(nodes, markNode);
 }
 
-export function setupDeclarativeShadowRoot(host) {
-    const supportsDeclarative =
-        HTMLElement.prototype.hasOwnProperty("attachInternals");
-    const internals = supportsDeclarative ? host.attachInternals() : null;
-
-    if (internals?.shadowRoot) host.shadowRoot = internals.shadowRoot;
-    else host.attachShadow({ mode: "open" });
-}
-
-export function findAttributesWithEsorDirectives(
-    root,
-    prefixes = [
-        ATTRIBUTES_NAMES_REFS,
-        ATTRIBUTES_NAMES_EVENTS,
-        ATTRIBUTES_NAMES_BIND,
-    ]
-) {
-    const found = {};
-    const iterator = document.createNodeIterator(
-        root,
-        NodeFilter.SHOW_ELEMENT,
-        {
-            acceptNode(node) {
-                if (node.hasAttributes()) {
-                    for (const { name } of node.attributes) {
-                        if (prefixes.some((prefix) => name.startsWith(prefix)))
-                            return NodeFilter.FILTER_ACCEPT;
-                    }
-                }
-                return NodeFilter.FILTER_SKIP;
-            },
-        }
-    );
-
-    let node;
-    while ((node = iterator.nextNode())) {
-        for (const attribute of node.attributes) {
-            const matchingPrefix = prefixes.find((prefix) =>
-                attribute.name.startsWith(prefix)
-            );
-            if (matchingPrefix) {
-                // Se crea el array solo en caso de encontrar el prefijo
-                if (!found[matchingPrefix]) {
-                    found[matchingPrefix] = [];
-                }
-                found[matchingPrefix].push(attribute);
-            }
-        }
+/**
+ * Creates a DocumentFragment from an array of nodes, optionally processing each node with a function.
+ * @param {Array<Node>} nodes - Nodes to include in the fragment.
+ * @param {Function} [fn=null] - Optional function to process each node. The function takes the node and the fragment as parameters and returns a processed node.
+ * @param {Node} [parent=null] - Optional parent node to append the fragment to.
+ * @returns {DocumentFragment} The created DocumentFragment containing the nodes.
+ */
+export function createFragment(nodes, fn = null, parent = null) {
+    const frag = document.createDocumentFragment();
+    if (!nodes?.length) return frag;
+    for (let node of nodes) {
+        if (!node) continue;
+        node = typeof fn === "function" ? fn(node, frag) : node;
+        Array.isArray(node)
+            ? frag.appendChild(createFragment(node, fn))
+            : frag.appendChild(node);
     }
-
-    return Object.keys(found).length ? found : null;
+    if (parent && frag.childNodes.length) parent.appendChild(frag);
+    return frag;
 }

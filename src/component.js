@@ -1,91 +1,106 @@
-import { Lifecycle } from "./lifecycle";
-import STATE, { withCurrentComponent } from "./globals";
-import {
-    findAttributesWithEsorDirectives,
-    setupDeclarativeShadowRoot,
-} from "./utils/dom";
-import { initPropsAndObserve } from "./templates/props";
-import {
-    setupEventDelegation,
-    setupSignals,
-    setupRefs,
-} from "./templates/dom-bindings";
-import { clearAllEventHandlers } from "./events";
+import { runHook } from "./lifecycle";
+import { initPropsAndObserve } from "./props";
+import { initDispatch } from "./events";
+import { createFragment } from "./utils/dom";
+import { handleError as error, tryCatch } from "./utils/error";
 
-export function component(name, setup) {
-    class EsorComponent extends HTMLElement {
+const REGEX_TAG_NAME = /^[a-z][a-z0-9-]*$/;
+const SHADOW_MODE = "open"; // "closed" or "open"
+
+/**
+ * A base class for creating custom elements that provides an API for working
+ * with properties, events, and the component lifecycle.
+ *
+ * @param {function} [setup] An optional function that is called when the
+ *     component is initialized. It is passed the component's properties as an
+ *     argument and should return a value that can be rendered into the
+ *     component's shadow DOM.
+ * @param {object} [options] An optional object with options for the component.
+ *     Currently only the `mode` option is supported, which can be either
+ *     `"open"` or `"closed"` and determines whether the component's shadow DOM
+ *     is open or closed.
+ *
+ * @returns {class} A class that extends `HTMLElement` and provides the
+ *     following additional properties and methods:
+ *
+ *     - `#shadow`: The component's shadow DOM.
+ *     - `props`: An object containing the component's properties.
+ *     - `_cleanup`: An array of functions that are called when the component is
+ *         destroyed.
+ *     - `_isMounted`: A boolean indicating whether the component is currently
+ *         mounted.
+ *     - `constructor()`: Initializes the component and calls the `setup`
+ *         function if it is provided.
+ *     - `connectedCallback()`: Called when the component is inserted into the
+ *         DOM. It calls the `mount` lifecycle hook if the component is already
+ *         mounted.
+ *     - `disconnectedCallback()`: Called when the component is removed from the
+ *         DOM. It calls the `destroy` lifecycle hook and then calls the
+ *         functions in the `_cleanup` array.
+ */
+const BaseComponent = (setup, { mode } = {}) =>
+    class extends HTMLElement {
+        #shadow = this.attachShadow({ mode: mode || SHADOW_MODE });
+        props = Object.create(null);
+        _cleanup = [];
+        _isMounted = false;
+
         constructor() {
             super();
-            setupDeclarativeShadowRoot(this);
-            this._initComponent();
-            this._render();
-        }
+            tryCatch(() => {
+                // Initialize component
+                initDispatch(this);
+                initPropsAndObserve(this);
 
-        _initComponent() {
-            Object.assign(this, {
-                _cleanup: new Set(),
-                _isUpdating: false,
-                _props: {},
-                _eventIds: [],
-                _eventHandlers: new Map(),
-                lifecycle: new Lifecycle(),
-            });
-            STATE.currentComponent = this;
-            initPropsAndObserve(this);
-            this.lifecycle.run("beforeMount", this);
+                // Call setup function with props and render result
+                const result = setup?.call(this, this.props);
+                createFragment(
+                    [].concat(result).filter(Boolean),
+                    null,
+                    this.#shadow
+                );
+
+                // Run lifecycle hook
+                runHook("beforeMount", this);
+            }, "component.init");
         }
 
         connectedCallback() {
-            this.lifecycle.run("mount", this);
+            if (this._isMounted) runHook("mount", this);
+            this._isMounted = true;
         }
 
         disconnectedCallback() {
-            this.lifecycle.run("destroy", this);
-            this._cleanupComponent();
-            clearAllEventHandlers(this);
-        }
-
-        _cleanupComponent() {
-            this._cleanup.forEach((fn) => fn());
-            this._cleanup.clear();
-            this._props = null;
-            this._eventIds = null;
-
-            if (this._eventHandlers) {
-                this._eventHandlers.forEach((listener, type) => {
-                    this.shadowRoot.removeEventListener(type, listener);
-                });
-                this._eventHandlers.clear();
+            runHook("destroy", this);
+            for (let i = this._cleanup.length - 1; i >= 0; i--) {
+                tryCatch(this._cleanup[i], "component.cleanup");
             }
-
-            STATE.currentComponent = null;
+            this._cleanup.length = 0;
         }
+    };
 
-        _render() {
-            withCurrentComponent(this, () => {
-                this.lifecycle.run("beforeUpdate", this);
-                const result =
-                    typeof setup === "function"
-                        ? setup.call(this, this._props)
-                        : setup;
-                const { template, signals, refs } =
-                    typeof result === "function" ? result() : result || {};
+/**
+ * Registers a custom element with the given tag name and setup function.
+ *
+ * @param {string} tagName The tag name of the custom element.
+ * @param {function} [setup] An optional function that is called when the
+ *     component is initialized. It is passed the component's properties as an
+ *     argument and should return a value that can be rendered into the
+ *     component's shadow DOM.
+ * @param {object} [options] An optional object with options for the component.
+ *     Currently only the `mode` option is supported, which can be either
+ *     `"open"` or `"closed"` and determines whether the component's shadow DOM
+ *     is open or closed.
+ *
+ * @returns {undefined}
+ */
+export const component = (tagName, setup, options = {}) => {
+    if (!REGEX_TAG_NAME.test(tagName))
+        return error("component", `Invalid tag name: ${tagName}`, "error");
 
-                if (!this.shadowRoot.hasChildNodes() && template) {
-                    this.shadowRoot.appendChild(template.cloneNode(true));
-                }
+    if (customElements.get(tagName))
+        return error("component", `${tagName} ya registrado`, "warn");
 
-                const data = findAttributesWithEsorDirectives(this.shadowRoot);
-                if (data) {
-                    if (data.data_esor_ref) setupRefs(data.data_esor_ref, refs);
-                    if (data.data_esor_event)
-                        setupEventDelegation(this, data.data_esor_event);
-                }
-                setupSignals(this, signals);
-                this.lifecycle.run("update", this);
-            });
-        }
-    }
-    customElements.define(name, EsorComponent);
-    return EsorComponent;
-}
+    // Register the component
+    customElements.define(tagName, BaseComponent(setup, options));
+};

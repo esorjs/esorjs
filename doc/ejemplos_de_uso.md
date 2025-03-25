@@ -1,18 +1,17 @@
-
 # Ejemplos de Uso
 
 ## Contador Básico
 
 ```javascript
-import { component, html, useSignal } from 'esor';
+import { component, html, signal } from "esor";
 
-component('my-counter', () => {
-  const [count, setCount] = useSignal(0);
+component("my-counter", () => {
+  const count = signal(0);
 
   return html`
     <div>
       <p>Contador: ${count}</p>
-      <button @click=${() => setCount(count + 1)}>Incrementar</button>
+      <button onclick=${() => count(count() + 1)}>Incrementar</button>
     </div>
   `;
 });
@@ -21,22 +20,20 @@ component('my-counter', () => {
 ## Lista de Tareas
 
 ```javascript
-import { component, html, useSignal } from 'esor';
+import { component, html, signal } from 'esor';
 
 component("todo-list", () => {
-    const [todos, setTodos] = useSignal([]);
-    const [newTodo, setNewTodo] = useSignal("");
+    const todos = signal([]);
+    const newTodo = signal("");
 
-    const addTodo = () => {
-        setTodos([...todos(), newTodo()]);
-    };
+    const addTodo = () => todos([...todos(), newTodo()])
 
     return html`
         <div>
-            <input type="text" @input=${(e) => setNewTodo(e.target.value)} />
-            <button @click=${addTodo}>Agregar Tarea</button>
+            <input type="text" oninput=${(e) => newTodo(e.target.value)} />
+            <button onclick=${addTodo}>Agregar Tarea</button>
             <ul>
-                ${todos().map((todo) => html`<li>${todo}</li>`)}
+                ${()=>todos().map((todo) => html`<li key=${todo}>${todo}</li>`)}
             </ul>
         </div>
     `;
@@ -45,7 +42,8 @@ component("todo-list", () => {
 ## range
 
 component("my-range", () => {
-    const [value, setValue] = useSignal(50);
+    const value = signal(50);
+    
     return html`
         <div>
             <h2>My Range</h2>
@@ -54,8 +52,9 @@ component("my-range", () => {
                 type="range"
                 min="0"
                 max="100"
-                @input="${(e) => setValue(e.target.value)}"
+                oninput="${(e) => value(e.target.value)}"
             />
         </div>
     `;
 });
+```

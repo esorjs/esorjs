@@ -1,34 +1,42 @@
-import { component } from "./component";
-import { html } from "./templates/engine";
-import { signal, batch, computed, effect } from "./hooks/signals";
+import { signal, computed, effect, batch } from "./hooks/reactivity";
+import { emit } from "./hooks/emit";
 import { ref } from "./hooks/ref";
-import { memo } from "./hooks/memo";
-import { useEmit } from "./hooks/emit";
- import { store } from "./hooks/store";
+import { html } from "./template/html";
+import { component } from "./component";
 import {
-    beforeMount,
     onMount,
-    beforeUpdate,
     onUpdate,
     onDestroy,
+    beforeMount,
+    beforeUpdate,
     onEffect,
-} from "./lifecycle";
+} from "./lifecycle.js";
+import { handleError, tryCatch } from "./utils/error.js";
 
 export {
+    // Core
     component,
     html,
+
+    // Reactivity
     signal,
-    batch,
-    ref,
     computed,
-    memo,
-    useEmit,
     effect,
-    store,
-    beforeMount,
+    batch,
+
+    // Utilities
+    ref,
+    emit,
+
+    // LifeCycle
     onMount,
-    beforeUpdate,
     onUpdate,
     onDestroy,
+    beforeMount,
+    beforeUpdate,
     onEffect,
+
+    // Error handling
+    handleError,
+    tryCatch,
 };

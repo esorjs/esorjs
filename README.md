@@ -51,7 +51,7 @@ component('my-counter', () => {
   return html`
     <div>
       <p>Contador: ${count()}</p>
-      <button @click=${() => count(count() + 1)}>Incrementar</button>
+      <button onclick=${() => count(count() + 1)}>Incrementar</button>
     </div>
   `;
 });

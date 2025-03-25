@@ -1,24 +1,19 @@
-export const escapeHTML = (value) => {
-    if (value === undefined || value === null) return "";
-    return value.toString().replace(
-        /[&<>'"]/g,
-        (match) =>
-            ({
-                "&": "&amp;",
-                "<": "&lt;",
-                ">": "&gt;",
-                "'": "&#39;",
-                '"': "&quot;",
-                "/": "&#x2F;",
-            }[match])
-    );
-};
-
-export function cleanAttributeValue(value) {
-    if (value === undefined || value === null) return "";
-
-    return String(value)
-        .replace(/^["']|["']$/g, "")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-}
+/**
+ * Sanitizes text strings to prevent HTML injection
+ * @param {any} value - Value to sanitize
+ * @returns {string} Sanitized text
+ */
+export const sanitizeHtml = (value) =>
+    value == null
+        ? ""
+        : String(value).replace(
+              /[&<>'"]/g,
+              (c) =>
+                  ({
+                      "&": "&amp;",
+                      "<": "&lt;",
+                      ">": "&gt;",
+                      "'": "&#39;",
+                      '"': "&quot;",
+                  }[c])
+          );
