@@ -1,6 +1,6 @@
-import { handleError, tryCatch } from "./utils/error";
+import { handleError, tryCatch } from "./utils/error.js";
 
-const lifecycleHooks = {
+const lifecycles = {
     beforeMount: [],
     mount: [],
     beforeUpdate: [],
@@ -20,7 +20,7 @@ export const addHook = (key, fn) => {
         handleError("lifecycle", "Hook must be a function");
         return () => {};
     }
-    const hooks = lifecycleHooks[key];
+    const hooks = lifecycles[key];
     if (!hooks) return () => {};
     hooks.push(fn);
     return () => {
@@ -37,8 +37,8 @@ export const addHook = (key, fn) => {
  *                        If no context is provided, the function will return without executing hooks.
  */
 export const runHook = (key, ctx) => {
-    if (!ctx || !lifecycleHooks[key]) return;
-    for (const fn of lifecycleHooks[key])
+    if (!ctx || !lifecycles[key]) return;
+    for (const fn of lifecycles[key])
         tryCatch(() => fn.call(ctx), "lifecycle.runHook");
 };
 
@@ -48,7 +48,7 @@ export const runHook = (key, ctx) => {
  * @param {string} key - The lifecycle key identifying the set of hooks to clear.
  */
 export const clearHook = (key) => {
-    if (lifecycleHooks[key]) lifecycleHooks[key] = [];
+    if (lifecycles[key]) lifecycles[key] = [];
 };
 
 /**

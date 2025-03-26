@@ -1,7 +1,7 @@
-import { effect } from "../hooks/reactivity";
-import { markedFragment, markNode } from "../utils/dom";
-import { reconcile } from "./reconcile";
-import { tryCatch } from "../utils/error";
+import { effect } from "../hooks/reactivity.js";
+import { markedFragment, markNode } from "../utils/dom.js";
+import { reconcile } from "./reconcile.js";
+import { tryCatch } from "../utils/error.js";
 
 const templCache = new WeakMap(); // Template cache
 const MARKER = "\ufeff\ufeff"; // Invisible marker for processing
@@ -27,7 +27,7 @@ function insertFragment(fragment, parent, node = null) {
  * @param {Function|Object} value - Reference to apply
  * @private
  */
-function applyRef(node, value) {
+function setRef(node, value) {
     if (typeof value === "function") value(node);
     else if (value && typeof value === "object" && "current" in value)
         value.current = node;
@@ -40,7 +40,7 @@ function applyRef(node, value) {
  * @param {Function} value - Event handler
  * @private
  */
-function applyEvent(node, attr, value) {
+function setEvent(node, attr, value) {
     const eventName = attr.slice(2).toLowerCase();
     node.addEventListener(eventName, value);
     node._cleanup = () => node.removeEventListener(eventName, value);
@@ -56,7 +56,7 @@ function applyEvent(node, attr, value) {
  * @param {Object} value - An object containing CSS style properties and values.
  * @private
  */
-function applyStyle(node, value) {
+function setStyle(node, value) {
     Object.assign(node.style, value);
 }
 
@@ -72,7 +72,7 @@ function applyStyle(node, value) {
  * @private
  */
 
-export function applyAttribute(node, attr, value) {
+export function setAttribute(node, attr, value) {
     if (attr === "value" || attr === "checked") node[attr] = value;
     else if (value === false || value === null || value === undefined)
         node.removeAttribute(attr);
@@ -86,7 +86,7 @@ export function applyAttribute(node, attr, value) {
  * @returns {Function} The cleanup function for the effect.
  * @private
  */
-function applyEffect(node, fn) {
+function setEffect(node, fn) {
     const existingCleanup = node._cleanup;
     if (existingCleanup) existingCleanup();
     const cleanup = effect(fn);
@@ -149,7 +149,7 @@ function applyContent(node, value) {
     };
 
     typeof value === "function"
-        ? applyEffect(node, () => updateContent(value()))
+        ? setEffect(node, () => updateContent(value()))
         : updateContent(value);
 }
 
@@ -170,16 +170,16 @@ const render = (node, attr, value) => {
     if (attr) {
         node.removeAttribute(attr);
 
-        if (attr.startsWith("ref")) applyRef(node, value);
-        else if (attr.startsWith("on")) applyEvent(node, attr, value);
+        if (attr === "ref") setRef(node, value);
+        else if (attr[0] == "o" && attr[1] == "n") setEvent(node, attr, value);
         else if (attr === "className") node.setAttribute("class", value);
         else if (attr === "style" && typeof value === "object")
-            applyEffect(node, () => applyStyle(node, value));
+            setEffect(node, () => setStyle(node, value));
         else {
             // If the value is reactive, apply effect
             typeof value === "function"
-                ? applyEffect(node, () => applyAttribute(node, attr, value()))
-                : applyAttribute(node, attr, value);
+                ? setEffect(node, () => setAttribute(node, attr, value()))
+                : setAttribute(node, attr, value);
         }
     }
     // Render node content
@@ -322,4 +322,3 @@ function html(tpl, ...data) {
 }
 
 export { html };
-
