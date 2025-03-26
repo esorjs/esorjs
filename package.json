@@ -1,6 +1,6 @@
 {
   "name": "esor",
-  "version": "0.2.2",
+  "version": "0.2.4",
   "description": "JavaScript framework for dynamic Web applications based on Web Components",
   "author": "Juan Cristobal",
   "license": "MIT",
@@ -13,9 +13,6 @@
     "build": "node ./scripts/build.js",
     "watch": "node ./scripts/build.js --watch",
     "test": "echo \"No tests specified\" && exit 0"
-  },
-  "dependencies": {
-    "alien-signals": "^1.0.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
