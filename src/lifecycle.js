@@ -39,7 +39,7 @@ export const addHook = (key, fn) => {
 export const runHook = (key, ctx) => {
     if (!ctx || !lifecycles[key]) return;
     for (const fn of lifecycles[key])
-        tryCatch(() => fn.call(ctx), "lifecycle.runHook");
+        queueMicrotask(() => tryCatch(() => fn.call(ctx), "lifecycle.runHook"));
 };
 
 /**

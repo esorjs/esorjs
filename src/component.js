@@ -43,8 +43,7 @@ const BaseComponent = (setup, { mode } = {}) =>
         #shadow = this.attachShadow({ mode: mode || SHADOW_MODE });
         props = Object.create(null);
         _cleanup = [];
-        _isMounted = false;
-
+ 
         constructor() {
             super();
             tryCatch(() => {
@@ -66,9 +65,8 @@ const BaseComponent = (setup, { mode } = {}) =>
         }
 
         connectedCallback() {
-            if (this._isMounted) runHook("mount", this);
-            this._isMounted = true;
-        }
+            runHook("mount", this);
+         }
 
         disconnectedCallback() {
             runHook("destroy", this);
