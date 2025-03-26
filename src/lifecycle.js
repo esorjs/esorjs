@@ -1,4 +1,4 @@
-import { handleError, tryCatch } from "./utils/error.js";
+import { handleError, tryCatch } from "./utils/error";
 
 const lifecycles = {
     beforeMount: [],
