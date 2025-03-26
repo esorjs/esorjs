@@ -5,7 +5,7 @@ import { createFragment } from "./utils/dom";
 import { handleError as error, tryCatch } from "./utils/error";
 
 const REGEX_TAG_NAME = /^[a-z][a-z0-9-]*$/;
-const SHADOW_MODE = "open"; // "closed" or "open"
+const SHADOW_MODE = "open"; // closed || open
 
 /**
  * A base class for creating custom elements that provides an API for working

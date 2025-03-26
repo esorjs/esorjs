@@ -9,24 +9,25 @@ const MAX_UPDATE_DEPTH = 100;
  * @returns {Function} A getter/setter function to access and modify the value
  */
 const signal = (initial) => {
-  let val = initial;
+    let val = initial;
 
-  const getterSetter = (value) => {
-    if (value === undefined) {
-      if (activeEffect && !subs.includes(activeEffect)) subs.push(activeEffect);
-      return val;
-    }
+    const getterSetter = (value) => {
+        if (value === undefined) {
+            if (activeEffect && !subs.includes(activeEffect))
+                subs.push(activeEffect);
+            return val;
+        }
 
-    const computed = typeof value === "function" ? value(val) : value;
-    if (!Object.is(computed, val)) {
-      val = computed;
-      for (const sub of subs) sub();
-    }
+        const computed = typeof value === "function" ? value(val) : value;
+        if (!Object.is(computed, val)) {
+            val = computed;
+            for (const sub of subs) sub();
+        }
 
-    return val;
-  };
+        return val;
+    };
 
-  return getterSetter;
+    return getterSetter;
 };
 
 /**
@@ -38,25 +39,25 @@ const signal = (initial) => {
  * @returns {Function} A function to clean up the effect, preventing further executions and calling the cleanup logic.
  */
 const effect = (fn) => {
-  let updateDepth = 0;
-  if (++updateDepth > MAX_UPDATE_DEPTH) {
-    console.warn("Maximum effect update depth exceeded");
-    return;
-  }
-  const reactiveEffect = () => {
-    const prev = activeEffect;
-    activeEffect = reactiveEffect;
-    try {
-      fn();
-    } finally {
-      activeEffect = prev;
+    let updateDepth = 0;
+    if (++updateDepth > MAX_UPDATE_DEPTH) {
+        console.warn("Maximum effect update depth exceeded");
+        return;
     }
-  };
 
-  reactiveEffect();
-  updateDepth--;
+    const reactiveEffect = () => {
+        const prev = activeEffect;
+        activeEffect = reactiveEffect;
+        try {
+            fn();
+        } finally {
+            activeEffect = prev;
+            updateDepth--;
+        }
+    };
 
-  return () => subs.splice(subs.indexOf(reactiveEffect), 1);
+    reactiveEffect();
+    return () => subs.splice(subs.indexOf(reactiveEffect), 1);
 };
 
 /**
@@ -68,9 +69,9 @@ const effect = (fn) => {
  * @returns {Function} A getter function with a `.dispose` method to clean up the computed value.
  */
 const computed = (fn) => {
-  const computedSignal = signal();
-  effect(() => computedSignal(fn()));
-  return () => computedSignal();
+    const computedSignal = signal();
+    effect(() => computedSignal(fn()));
+    return () => computedSignal();
 };
 
 /**
@@ -81,13 +82,13 @@ const computed = (fn) => {
  * @returns {any} The result of the callback function.
  */
 const batch = (fn) => {
-  const previous = activeEffect;
-  activeEffect = { id: runCount++ };
-  try {
-    return fn();
-  } finally {
-    activeEffect = previous;
-  }
+    const previous = activeEffect;
+    activeEffect = { id: runCount++ };
+    try {
+        return fn();
+    } finally {
+        activeEffect = previous;
+    }
 };
 
 export { signal, effect, computed, batch };
