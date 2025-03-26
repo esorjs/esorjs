@@ -1,5 +1,5 @@
-import { markedFragment } from "../utils/dom";
-import { tryCatch } from "../utils/error";
+import { markedFragment } from "../utils/dom.js";
+import { tryCatch } from "../utils/error.js";
 
 /**
  * Reconciles the DOM nodes in a list by diffing the new data with the previous data.
@@ -23,7 +23,7 @@ export function reconcile(newGroupsData, markerNode) {
         const removeNodes = (nodes) => {
             for (const node of nodes) {
                 if (!node || node.parentNode !== parent) continue;
-                if (node._cleanup) node._cleanup();
+                if (node._cleanup && typeof node._cleanup === "function") node._cleanup();
                 parent.removeChild(node);
             }
         };
