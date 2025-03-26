@@ -2,13 +2,13 @@
 <a href="https://github.com/esorjs/esor/wiki" target="_blank">
     <img src="./assets/esor_logo.png" alt="Esor Logo" width="200"/> 
  </a>
-
-</p>
 <p align="center"><strong>Fast, light and modern</strong></p>
 
 <h4 align="center"><strong>All the power of Web Components and more in just 3 KB.<strog></h4>
-<p>Esor is a lightweight and efficient JavaScript framework for building reactive user interfaces, leveraging native Web Components, signal-based reactivity and an optimized templating engine.</p>
 
+</p>
+
+<p>Esor is a lightweight and efficient JavaScript framework for building reactive user interfaces, leveraging native Web Components, signal-based reactivity and an optimized templating engine.</p>
 
 ### 🔥 Main Features
 
