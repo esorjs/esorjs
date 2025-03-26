@@ -5,22 +5,23 @@
 
 </p>
 <p align="center"><strong>Fast, light and modern</strong></p>
-Esor is a lightweight and efficient JavaScript framework for building reactive user interfaces, leveraging native Web Components, signal-based reactivity and an optimized templating engine.
 
-  **All the power of Web Components and more in just 3 KB.**
+<h4 align="center"><strong>All the power of Web Components and more in just 3 KB.<strog></h4>
+<p>Esor is a lightweight and efficient JavaScript framework for building reactive user interfaces, leveraging native Web Components, signal-based reactivity and an optimized templating engine.</p>
 
-##### Características Principales
 
-- Native Web Components:\*\* Creates encapsulated components with Shadow DOM.
-- Signal-based reactivity:\*\* Inspired by SolidJS, with functions such as `signal`, `effect` and `computed`.
-- Declarative templating:\*\* Syntax similar to lit-html to define templates declaratively.
-- Efficient DOM:\*\* Efficient reconciliation system, accurate and optimized updates, no Virtual DOM.
-- Events and Lifecycle:\*\* Define hooks and manage events in a modular way.
-- Optimal Speed: \*\* Performance-centric architecture.
-- API and patterns known from `React` and `SolidJs`.
-- No compilation required.
+### 🔥 Main Features
 
-### 🔥 More information at the [Esor Website ➞](https://github.com/esorjs/esor/wiki)
+- **_Native Web Components:_** Creates encapsulated components with Shadow DOM.
+- **_Signal based reactivity:_** Inspired by SolidJS, with functions such as `signal`, `effect` and `computed`.
+- **_Declarative templating:_** Syntax similar to lit-html to define templates declaratively.
+- **_Efficient DOM:_** Efficient reconciliation system, accurate and optimized updates, no Virtual DOM.
+- **Events and Lifecycle:** Define hooks and manage events in a modular way.
+- **_Optimal Speed:_** Performance-centric architecture.
+- **_Simple API:_** API and patterns known from `React` and `SolidJs`.
+- **_No compilation required._**
+
+### 📖 More information at the [Esor Website ➞](https://github.com/esorjs/esor/wiki)
 
 <table border="0">
 <tbody>
@@ -43,7 +44,7 @@ You can find some awesome libraries in the [awesome-esor list](https://github.co
 
 ---
 
-## Installation
+### 📦 Installation
 
 Install Esor using npm or yarn:
 
@@ -55,7 +56,7 @@ yarn add esor
 
 ---
 
-## Basic Usage
+### ⚛️ Basic Usage
 
 Here is an example of a counter using the new API:
 
@@ -79,18 +80,18 @@ component("my-counter", () => {
 
 ---
 
-## Documentation
+### 📚 Documentation
 
 For more details about the API, check the [official documentation].(https://github.com/esorjs/esor/wiki).
 
 ---
 
-## Contribute
+### 🫶🏻 Contribute
 
 Contributions are welcome! See our [contribution guidelines].(https://github.com/esorjs/esor/blob/main/CONTRIBUTING.md) before sending a pull request.
 
 ---
 
-## License
+### 🔖 License
 
 This project is distributed under the MIT license. See the file [LICENSE](https://github.com/esorjs/esor/blob/main/LICENSE) for more details.
