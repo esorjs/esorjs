@@ -1,54 +1,37 @@
 import { handleError, tryCatch } from "./utils/error";
 
-const lifecycles = {
-    beforeMount: [],
-    mount: [],
-    beforeUpdate: [],
-    update: [],
-    destroy: [],
-};
+let ctx = null;
+
+export const createLifecycle = (instance) => (ctx = instance);
 
 /**
  * Adds a hook to the lifecycle system.
  *
  * @param {string} key - The lifecycle key identifying the set of hooks to add the function to.
  * @param {Function} fn - The function to add to the lifecycle hook.
- * @returns {Function} A function to remove the hook.
+ * @returns {void}
+ * @throws Error - If called outside component setup.
  */
-export const addHook = (key, fn) => {
-    if (typeof fn !== "function") {
-        handleError("lifecycle", "Hook must be a function");
-        return () => {};
+const addHook = (key, fn) => {
+    if (!ctx) {
+        handleError("lifecycle", "Hook called outside component setup");
+        return;
     }
-    const hooks = lifecycles[key];
-    if (!hooks) return () => {};
-    hooks.push(fn);
-    return () => {
-        const index = hooks.indexOf(fn);
-        if (index !== -1) hooks.splice(index, 1);
-    };
+    if (!ctx._lifecycles[key]) ctx._lifecycles[key] = [];
+    ctx._lifecycles[key].push(fn);
 };
 
 /**
  * Executes all hooks associated with the given lifecycle key within a provided context.
  *
  * @param {string} key - The lifecycle key identifying the set of hooks to run.
- * @param {Object} ctx - The context object to bind as `this` within each hook function.
- *                        If no context is provided, the function will return without executing hooks.
+ * @returns {void}
+ * @throws Error - If called outside component setup.
  */
-export const runHook = (key, ctx) => {
-    if (!ctx || !lifecycles[key]) return;
-    for (const fn of lifecycles[key])
+export const runHook = (key) => {
+    if (!ctx?._lifecycles?.[key]) return;
+    for (const fn of ctx._lifecycles[key])
         queueMicrotask(() => tryCatch(() => fn.call(ctx), "lifecycle.runHook"));
-};
-
-/**
- * Clears all hooks associated with the given lifecycle key.
- *
- * @param {string} key - The lifecycle key identifying the set of hooks to clear.
- */
-export const clearHook = (key) => {
-    if (lifecycles[key]) lifecycles[key] = [];
 };
 
 /**

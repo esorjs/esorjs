@@ -103,9 +103,6 @@ const observeAttributes = (host) => {
  * Then, sets up a MutationObserver to observe future attribute changes on the host element and updates the corresponding properties.
  *
  * @param {HTMLElement} host - The element whose properties are to be initialized and attributes observed.
- *
- * @see initAttributes
- * @see observeAttributes
  */
 export const initPropsAndObserve = (host) => {
     tryCatch(() => {

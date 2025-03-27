@@ -1,4 +1,4 @@
-import { runHook } from "./lifecycle";
+import { createLifecycle, runHook } from "./lifecycle";
 import { initPropsAndObserve } from "./props";
 import { initDispatch } from "./events";
 import { createFragment } from "./utils/dom";
@@ -42,12 +42,20 @@ const BaseComponent = (setup, { mode } = {}) =>
     class extends HTMLElement {
         #shadow = this.attachShadow({ mode: mode || SHADOW_MODE });
         props = Object.create(null);
+        _lifecycles = {
+            beforeMount: [],
+            mount: [],
+            beforeUpdate: [],
+            update: [],
+            destroy: [],
+        };
         _cleanup = [];
- 
+
         constructor() {
             super();
             tryCatch(() => {
                 // Initialize component
+                createLifecycle(this);
                 initDispatch(this);
                 initPropsAndObserve(this);
 
@@ -55,17 +63,16 @@ const BaseComponent = (setup, { mode } = {}) =>
                 const result = setup?.call(this, this.props);
                 createFragment(result || [], null, this.#shadow);
 
-                // Run lifecycle hook
-                runHook("beforeMount", this);
+                runHook("beforeMount");
             }, "component.init");
         }
 
         connectedCallback() {
-            runHook("mount", this);
-         }
+            runHook("mount");
+        }
 
         disconnectedCallback() {
-            runHook("destroy", this);
+            runHook("destroy");
             for (let i = this._cleanup.length - 1; i >= 0; i--) {
                 tryCatch(this._cleanup[i], "component.cleanup");
             }
