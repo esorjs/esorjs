@@ -1,7 +1,7 @@
-import { effect } from "../hooks/reactivity.js";
-import { markedFragment, markNode } from "../utils/dom.js";
-import { reconcile } from "./reconcile.js";
-import { tryCatch } from "../utils/error.js";
+import { effect } from "../hooks/reactivity";
+import { markedFragment, markNode } from "../utils/dom";
+import { reconcile } from "./reconcile";
+import { tryCatch } from "../utils/error";
 
 const templCache = new WeakMap(); // Template cache
 const MARKER = "\ufeff\ufeff"; // Invisible marker for processing
@@ -86,11 +86,14 @@ export function setAttribute(node, attr, value) {
  * @returns {Function} The cleanup function for the effect.
  * @private
  */
+
 function setEffect(node, fn) {
-    const existingCleanup = node._cleanup;
-    if (existingCleanup) existingCleanup();
+    if (!node || typeof fn !== "function") return;
+    const isCleanup = node._cleanup;
+    if (isCleanup) isCleanup();
     const cleanup = effect(fn);
     node._cleanup = cleanup;
+
     return cleanup;
 }
 
@@ -136,7 +139,7 @@ function replaceNodes(MARKERNode, newNodes) {
  * @param {any} value - The new value to set as the content of the node.
  * @private
  */
-function applyContent(node, value) {
+function setContent(node, value) {
     const updateContent = (val) => {
         tryCatch(() => {
             if (Array.isArray(val)) reconcile(val, node);
@@ -183,7 +186,7 @@ const render = (node, attr, value) => {
         }
     }
     // Render node content
-    else applyContent(node, value);
+    else setContent(node, value);
 };
 
 /**

@@ -1,5 +1,5 @@
 import { handleError, tryCatch } from "./utils/error";
-
+ 
 let ctx = null;
 
 export const createLifecycle = (instance) => (ctx = instance);

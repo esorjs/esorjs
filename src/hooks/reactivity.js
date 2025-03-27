@@ -10,23 +10,19 @@ const MAX_UPDATE_DEPTH = 100;
  */
 const signal = (initial) => {
     let val = initial;
-
+    const subs = new Set();
     const getterSetter = (value) => {
         if (value === undefined) {
-            if (activeEffect && !subs.includes(activeEffect))
-                subs.push(activeEffect);
+            if (activeEffect) subs.add(activeEffect);
             return val;
         }
-
         const computed = typeof value === "function" ? value(val) : value;
         if (!Object.is(computed, val)) {
             val = computed;
-            for (const sub of subs) sub();
+            for (const fn of subs) fn();
         }
-
         return val;
     };
-
     return getterSetter;
 };
 
@@ -45,9 +41,9 @@ const effect = (fn) => {
         return;
     }
 
-    const reactiveEffect = () => {
+    const reactive = () => {
         const prev = activeEffect;
-        activeEffect = reactiveEffect;
+        activeEffect = reactive;
         try {
             fn();
         } finally {
@@ -56,8 +52,8 @@ const effect = (fn) => {
         }
     };
 
-    reactiveEffect();
-    return () => subs.splice(subs.indexOf(reactiveEffect), 1);
+    reactive();
+    return () => subs.splice(subs.indexOf(reactive), 1);
 };
 
 /**
