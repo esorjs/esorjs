@@ -53,11 +53,7 @@ const BaseComponent = (setup, { mode } = {}) =>
 
                 // Call setup function with props and render result
                 const result = setup?.call(this, this.props);
-                createFragment(
-                    [].concat(result).filter(Boolean),
-                    null,
-                    this.#shadow
-                );
+                createFragment(result || [], null, this.#shadow);
 
                 // Run lifecycle hook
                 runHook("beforeMount", this);
