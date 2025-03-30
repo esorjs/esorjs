@@ -31,6 +31,7 @@ function setRef(node, value) {
     if (typeof value === "function") value(node);
     else if (value && typeof value === "object" && "current" in value)
         value.current = node;
+    else if (value !== null && value !== undefined) value = node;
 }
 
 /**
@@ -142,6 +143,7 @@ function replaceNodes(MARKERNode, newNodes) {
 function setContent(node, value) {
     const updateContent = (val) => {
         tryCatch(() => {
+            if (typeof val === "boolean") val = "";
             if (Array.isArray(val)) reconcile(val, node);
             else {
                 const textNode = document.createTextNode(String(val ?? ""));

@@ -1,7 +1,6 @@
 let activeEffect = null;
 let runCount = 0;
 const subs = [];
-const MAX_UPDATE_DEPTH = 100;
 
 /**
  * Creates a reactive signal that notifies subscribers when its value changes
@@ -35,20 +34,19 @@ const signal = (initial) => {
  * @returns {Function} A function to clean up the effect, preventing further executions and calling the cleanup logic.
  */
 const effect = (fn) => {
-    let updateDepth = 0;
-    if (++updateDepth > MAX_UPDATE_DEPTH) {
-        console.warn("Maximum effect update depth exceeded");
-        return;
-    }
+    let isRunning = false;
 
     const reactive = () => {
+        if (isRunning) return;
+        isRunning = true;
+
         const prev = activeEffect;
         activeEffect = reactive;
         try {
             fn();
         } finally {
             activeEffect = prev;
-            updateDepth--;
+            isRunning = false;
         }
     };
 
