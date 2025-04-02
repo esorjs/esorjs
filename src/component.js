@@ -103,5 +103,6 @@ export const component = (tagName, setup, options = {}) => {
         return error("component", `${tagName} ya registrado`, "warn");
 
     // Register the component
-    customElements.define(tagName, BaseComponent(setup, options));
+    typeof customElements !== "undefined" &&
+        customElements.define(tagName, BaseComponent(setup, options));
 };
