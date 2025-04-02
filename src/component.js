@@ -96,13 +96,14 @@ const BaseComponent = (setup, { mode } = {}) =>
  * @returns {undefined}
  */
 export const component = (tagName, setup, options = {}) => {
-    if (!REGEX_TAG_NAME.test(tagName))
-        return error("component", `Invalid tag name: ${tagName}`, "error");
+    if (typeof customElements !== "undefined") {
+        if (!REGEX_TAG_NAME.test(tagName))
+            return error("component", `Invalid tag name: ${tagName}`, "error");
 
-    if (customElements.get(tagName))
-        return error("component", `${tagName} ya registrado`, "warn");
+        if (customElements.get(tagName))
+            return error("component", `${tagName} ya registrado`, "warn");
 
-    // Register the component
-    typeof customElements !== "undefined" &&
+        // Register the component
         customElements.define(tagName, BaseComponent(setup, options));
+    }
 };
