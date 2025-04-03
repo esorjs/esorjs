@@ -1,52 +1,38 @@
-import { signal } from "./hooks/reactivity";
-import { sanitizeHtml } from "./utils/parser";
-import { tryCatch } from "./utils/error";
- 
-// Special values as constant object
-const SPECIAL_VALUES = {
-    true: true,
-    false: false,
-    null: null,
-    undefined: undefined,
-    nan: NaN,
-    infinity: Infinity,
-    "-infinity": -Infinity,
-};
+import { signal } from "./hooks/reactivity.js";
+import { sanitizeHtml } from "./utils/parser.js";
+import { tryCatch } from "./utils/error.js";
+
+const SPECIAL_PARSERS = [
+    [/(true|false)/, (m) => m[0] === "true"],
+    [/^[\d.]+$/, parseFloat],
+    [/^[{[]/, JSON.parse],
+];
 
 /**
- * Parses a raw input value and attempts to convert it to a more appropriate JavaScript type.
+ * Tries to parse a given string into a more appropriate JavaScript type.
  *
- * If the input is not a string, it is returned as is.
- * The function trims the input string and converts it to lowercase to check for special values
- * such as true, false, null, etc. If the trimmed string matches a special value, the corresponding
- * JavaScript type is returned. If the string can be converted to a number, the numeric value is
- * returned. If the string is in a JSON format (object or array), it attempts to parse it as JSON.
- * If all conversions fail, the original trimmed string is returned.
+ * The function trims the input string and checks if it matches any of the
+ * special values defined in {@link SPECIAL_PARSERS}. If a match is found, the
+ * corresponding parser function is called with the match object as an argument.
+ *
+ * If no match is found, the original trimmed string is returned.
  *
  * @param {any} raw - The raw input value to be parsed.
- * @returns {any} The parsed value converted to an appropriate JavaScript type, or the original
- * value if no conversion is possible.
+ * @returns {any} The parsed value, or the original value if no conversion is possible.
  */
-
 function parseValue(raw) {
     if (typeof raw !== "string") return raw;
     const str = raw.trim();
-    const lower = str.toLowerCase();
 
-    return (
-        SPECIAL_VALUES[lower] ??
-        (/^[\d.]+$/.test(str)
-            ? parseFloat(str)
-            : str[0] === "{" || str[0] === "["
-            ? parseJson(str)
-            : str)
-    );
-}
-
-function parseJson(str) {
-    try {
-        return JSON.parse(str);
-    } catch {}
+    for (const [regex, parser] of SPECIAL_PARSERS) {
+        if (regex.test(str)) {
+            try {
+                return parser(str);
+            } catch {}
+            break;
+        }
+    }
+    return str;
 }
 
 const shouldSkipAttribute = (name) =>
