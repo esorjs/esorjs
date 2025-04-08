@@ -3,7 +3,7 @@ name: Publish ESOR to npm
 on:
   push:
     branches:
-      - main  # o el nombre de tu rama principal
+      - main  # or the name of your main branch
 
 jobs:
   build-and-publish:
