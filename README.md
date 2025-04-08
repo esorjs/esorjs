@@ -80,6 +80,25 @@ component("my-counter", () => {
 
 ---
 
+use it like this:
+
+<!--
+```
+<custom-element-demo>
+ <template>
+  <link rel="import" href="../demo/my-counter.html">
+   <next-code-block></next-code-block>
+ </template>
+</custom-element-demo>
+```
+-->
+
+```html
+<my-counter></my-counter>
+```
+
+---
+
 ### 📚 Documentation
 
 For more details about the API, check the [official documentation].(https://github.com/esorjs/esor/wiki).
