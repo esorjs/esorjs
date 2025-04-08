@@ -1,5 +1,4 @@
-./node_modules
-package-lock.json
+node_modules
 scratch.md
 dist
 .env.json
