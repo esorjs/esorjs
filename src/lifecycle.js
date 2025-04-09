@@ -1,5 +1,5 @@
-import { handleError, tryCatch } from "./utils/error";
- 
+import { handleError } from "./utils/error";
+
 let ctx = null;
 
 export const createLifecycle = (instance) => (ctx = instance);
@@ -31,7 +31,7 @@ const addHook = (key, fn) => {
 export const runHook = (key) => {
     if (!ctx?._lifecycles?.[key]) return;
     for (const fn of ctx._lifecycles[key])
-        queueMicrotask(() => tryCatch(() => fn.call(ctx), "lifecycle.runHook"));
+        queueMicrotask(() => fn.call(ctx), "lifecycle.runHook");
 };
 
 /**

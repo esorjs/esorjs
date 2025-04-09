@@ -10,8 +10,7 @@ import {
     beforeMount,
     beforeUpdate,
     onEffect,
-} from "./lifecycle.js";
-import { handleError, tryCatch } from "./utils/error.js";
+} from "./lifecycle";
 
 export {
     // Core
@@ -35,8 +34,4 @@ export {
     beforeMount,
     beforeUpdate,
     onEffect,
-
-    // Error handling
-    handleError,
-    tryCatch,
 };

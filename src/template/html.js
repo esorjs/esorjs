@@ -1,10 +1,9 @@
-import { effect } from "../hooks/reactivity.js";
-import { markedFragment, markNode } from "../utils/dom.js";
-import { reconcile } from "./reconcile.js";
-import { tryCatch } from "../utils/error.js";
+import { effect } from "../hooks/reactivity";
+import { markedFragment, markNode } from "../utils/dom";
+import { reconcile } from "./reconcile";
 
 const templCache = new WeakMap();
-const MARKER = "\ufeff\ufeff"; // Invisible marker for processing
+const MARKER = "\ufeff"; // Invisible marker for processing
 
 /**
  * Creates a <template> element from an HTML string.
@@ -13,9 +12,9 @@ const MARKER = "\ufeff\ufeff"; // Invisible marker for processing
  * @returns {HTMLTemplateElement} The generated template.
  */
 function createTemplate(htmlContent) {
-    const template = document.createElement("template");
-    template.innerHTML = htmlContent;
-    return template;
+  const template = document.createElement("template");
+  template.innerHTML = htmlContent;
+  return template;
 }
 
 /**
@@ -26,35 +25,36 @@ function createTemplate(htmlContent) {
  * @param {any} value - The value to assign.
  */
 const render = (node, attr, value) => {
-    if (attr) {
-        node.removeAttribute(attr);
-        if (attr === "ref") {
-            typeof value === "function"
-                ? value(node)
-                : value && (value.current = node);
-        } else if (
-            attr[0] == "o" &&
-            attr[1] == "n" &&
-            typeof value === "function"
-        ) {
-            const eventName = attr.slice(2).toLowerCase();
-            node.addEventListener(eventName, value);
-            node._cleanup = () => node.removeEventListener(eventName, value);
-        } else if (attr === "style" && typeof value === "object") {
-            effect(() => Object.assign(node.style, value));
-        } else {
-            typeof value === "function"
-                ? effect(() => setAttribute(node, attr, value()))
-                : setAttribute(node, attr, value);
-        }
-        // Render node content
-    } else setContent(node, value);
+  if (attr) {
+    node.removeAttribute(attr);
+    if (attr === "ref") {
+      typeof value === "function"
+        ? value(node)
+        : value && (value.current = node);
+    } else if (
+      attr[0] == "o" &&
+      attr[1] == "n" &&
+      typeof value === "function"
+    ) {
+      const eventName = attr.slice(2).toLowerCase();
+      node.addEventListener(eventName, value);
+      node._cleanup = () => node.removeEventListener(eventName, value);
+    } else if (attr === "style" && typeof value === "object") {
+      effect(() => Object.assign(node.style, value));
+    } else {
+      typeof value === "function"
+        ? effect(() => setAttribute(node, attr, value()))
+        : setAttribute(node, attr, value);
+    }
+    // Render node content
+  } else setContent(node, value);
 };
 
 export function setAttribute(node, attr, value) {
-    if (attr === "value" || attr === "checked") node[attr] = value;
-    else if (value === false || value === null) node.removeAttribute(attr);
-    else node.setAttribute(attr, value);
+  if (attr === "value" || attr === "checked") node[attr] = value;
+  else if (value === false || value === null || value === undefined)
+    node.removeAttribute(attr);
+  else node.setAttribute(attr, value);
 }
 
 /**
@@ -67,24 +67,19 @@ export function setAttribute(node, attr, value) {
  * @param {any} value - The new value.
  */
 function setContent(node, value) {
-    const updateContent = (val) => {
-        tryCatch(() => {
-            if (typeof val === "boolean") val = "";
-            if (Array.isArray(val)) {
-                reconcile(val, node);
-            } else {
-                const textNode = document.createTextNode(String(val ?? ""));
-                markNode(textNode);
-                replaceNodes(node, [textNode]);
-            }
-        }, "html.updateContent");
-    };
-
-    if (typeof value === "function") {
-        effect(() => updateContent(value()));
-    } else {
-        updateContent(value);
+  const updateContent = (val) => {
+    if (typeof val === "boolean") val = "";
+    if (Array.isArray(val)) reconcile(val, node);
+    else {
+      const textNode = document.createTextNode(String(val ?? ""));
+      markNode(textNode);
+      replaceNodes(node, [textNode]);
     }
+  };
+
+  typeof value === "function"
+    ? effect(() => updateContent(value()))
+    : updateContent(value);
 }
 
 /**
@@ -94,20 +89,16 @@ function setContent(node, value) {
  * @param {Array<Node>} newNodes - The new nodes to insert.
  */
 function replaceNodes(MARKERNode, newNodes) {
-    const parent = MARKERNode.parentNode;
-    let next = MARKERNode.nextSibling;
-    while (next && next.__nodeGroups) {
-        if (next._cleanup) next._cleanup();
-        parent.removeChild(next);
-        next = MARKERNode.nextSibling;
-    }
-    if (newNodes?.length) {
-        insertFragment(
-            markedFragment(newNodes),
-            parent,
-            MARKERNode.nextSibling
-        );
-    }
+  const parent = MARKERNode.parentNode;
+  let next = MARKERNode.nextSibling;
+  while (next && next.__nodeGroups) {
+    if (next._cleanup) next._cleanup();
+    parent.removeChild(next);
+    next = MARKERNode.nextSibling;
+  }
+  if (newNodes?.length) {
+    insertFragment(markedFragment(newNodes), parent, MARKERNode.nextSibling);
+  }
 }
 
 /**
@@ -118,10 +109,10 @@ function replaceNodes(MARKERNode, newNodes) {
  * @param {Node|null} refNode - Reference node for insertion.
  */
 function insertFragment(fragment, parent, refNode = null) {
-    if (!fragment || !parent) return;
-    refNode && refNode.parentNode === parent
-        ? parent.insertBefore(fragment, refNode)
-        : parent.appendChild(fragment);
+  if (!fragment || !parent) return;
+  refNode && refNode.parentNode === parent
+    ? parent.insertBefore(fragment, refNode)
+    : parent.appendChild(fragment);
 }
 
 /**
@@ -131,42 +122,37 @@ function insertFragment(fragment, parent, refNode = null) {
  * @param {Array<any>} data - The values to replace in the template.
  */
 function processTemplate(template, data) {
-    const nodes = [];
-    const walker = document.createTreeWalker(
-        template.content,
-        NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT
-    );
+  const nodes = [];
+  const walker = document.createTreeWalker(
+    template.content,
+    NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT
+  );
 
-    while (walker.nextNode()) nodes.push(walker.currentNode);
+  while (walker.nextNode()) nodes.push(walker.currentNode);
 
-    let idx = 0;
-    for (let i = 0; i < nodes.length; i++) {
-        const n = nodes[i];
-        if (n.nodeType === Node.ELEMENT_NODE && n.attributes.length) {
-            for (const attr of Array.from(n.attributes))
-                if (attr.value === MARKER) render(n, attr.name, data[idx++]);
-        } else if (
-            n.nodeType === Node.TEXT_NODE &&
-            n.nodeValue.includes(MARKER)
-        ) {
-            if (n.nodeValue === MARKER) {
-                const comm = document.createComment("");
-                n.parentNode.replaceChild(comm, n);
-                render(comm, null, data[idx++]);
-            } else {
-                const tmp = createTemplate(
-                    n.nodeValue.replaceAll(MARKER, "<!>")
-                );
-                const children = Array.from(tmp.content.childNodes);
-                for (let j = 0; j < children.length; j++) {
-                    const child = children[j];
-                    if (child.nodeType === Node.COMMENT_NODE)
-                        render(child, null, data[idx++]);
-                }
-                n.parentNode.replaceChild(tmp.content, n);
-            }
+  let idx = 0;
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    if (n.nodeType === Node.ELEMENT_NODE && n.attributes.length) {
+      for (const attr of Array.from(n.attributes))
+        if (attr.value === MARKER) render(n, attr.name, data[idx++]);
+    } else if (n.nodeType === Node.TEXT_NODE && n.nodeValue.includes(MARKER)) {
+      if (n.nodeValue === MARKER) {
+        const comm = document.createComment("");
+        n.parentNode.replaceChild(comm, n);
+        render(comm, null, data[idx++]);
+      } else {
+        const tmp = createTemplate(n.nodeValue.replaceAll(MARKER, "<!>"));
+        const children = Array.from(tmp.content.childNodes);
+        for (let j = 0; j < children.length; j++) {
+          const child = children[j];
+          if (child.nodeType === Node.COMMENT_NODE)
+            render(child, null, data[idx++]);
         }
+        n.parentNode.replaceChild(tmp.content, n);
+      }
     }
+  }
 }
 
 /**
@@ -177,15 +163,9 @@ function processTemplate(template, data) {
  * @returns {Array<Node>} The array of generated nodes.
  */
 function templateToNodes(htmlContent, fn = null) {
-    return tryCatch(
-        () => {
-            const template = createTemplate(htmlContent);
-            if (typeof fn === "function") fn(template);
-            return [...template.content.childNodes];
-        },
-        "html.templateToNodes",
-        []
-    );
+  const template = createTemplate(htmlContent);
+  if (typeof fn === "function") fn(template);
+  return [...template.content.childNodes];
 }
 
 /**
@@ -196,19 +176,13 @@ function templateToNodes(htmlContent, fn = null) {
  * @returns {Array<Node>} The created nodes.
  */
 function build(tpl, ...data) {
-    return tryCatch(
-        () => {
-            if (tpl.length === 1) return templateToNodes(tpl[0]);
-            if (!data.length) return templateToNodes(tpl.join(""));
+  if (tpl.length === 1) return templateToNodes(tpl[0]);
+  if (!data.length) return templateToNodes(tpl.join(""));
 
-            const combined = tpl.join(MARKER);
-            const template = createTemplate(combined);
-            processTemplate(template, data);
-            return [...template.content.childNodes];
-        },
-        "html.build",
-        []
-    );
+  const combined = tpl.join(MARKER);
+  const template = createTemplate(combined);
+  processTemplate(template, data);
+  return [...template.content.childNodes];
 }
 
 /**
@@ -219,9 +193,9 @@ function build(tpl, ...data) {
  * @returns {Array<Node>} The created nodes.
  */
 function html(tpl, ...data) {
-    if (templCache.has(tpl)) return build(templCache.get(tpl), ...data);
-    templCache.set(tpl, tpl);
-    return build(tpl, ...data);
+  if (templCache.has(tpl)) return build(templCache.get(tpl), ...data);
+  templCache.set(tpl, tpl);
+  return build(tpl, ...data);
 }
 
 export { html };

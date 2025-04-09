@@ -2,7 +2,6 @@ import { createLifecycle, runHook } from "./lifecycle";
 import { initPropsAndObserve } from "./props";
 import { initDispatch } from "./events";
 import { createFragment } from "./utils/dom";
-import { handleError as error, tryCatch } from "./utils/error";
 
 const REGEX_TAG_NAME = /^[a-z][a-z0-9-]*$/;
 const SHADOW_MODE = "open"; // closed || open
@@ -38,47 +37,49 @@ const SHADOW_MODE = "open"; // closed || open
  *         DOM. It calls the `destroy` lifecycle hook and then calls the
  *         functions in the `_cleanup` array.
  */
-const BaseComponent = (setup, { mode } = {}) =>
-    class extends HTMLElement {
-        #shadow = this.attachShadow({ mode: mode || SHADOW_MODE });
-        props = Object.create(null);
-        _lifecycles = {
-            beforeMount: [],
-            mount: [],
-            beforeUpdate: [],
-            update: [],
-            destroy: [],
-        };
-        _cleanup = [];
-
-        constructor() {
-            super();
-            tryCatch(() => {
-                // Initialize component
-                createLifecycle(this);
-                initDispatch(this);
-                initPropsAndObserve(this);
-
-                // Call setup function with props and render result
-                const result = setup?.call(this, this.props);
-                createFragment(result || [], null, this.#shadow);
-
-                runHook("beforeMount");
-            }, "component.init");
-        }
-
-        connectedCallback() {
-            runHook("mount");
-        }
-
-        disconnectedCallback() {
-            runHook("destroy");
-            for (let i = this._cleanup.length - 1; i >= 0; i--) {
-                tryCatch(this._cleanup[i], "component.cleanup");
-            }
-            this._cleanup.length = 0;
-        }
+const BaseComponent = (setup, options = {}) =>
+  class extends HTMLElement {
+    #shadow = this.attachShadow({ mode: options.mode || SHADOW_MODE });
+    #mounted = false;
+    props = Object.create(null);
+    _lifecycles = {
+      beforeMount: [],
+      mount: [],
+      beforeUpdate: [],
+      update: [],
+      destroy: [],
     };
+    _cleanup = [];
+
+    constructor() {
+      super();
+      Promise.resolve().then(() => {
+        // Initialize component
+        createLifecycle(this);
+        initDispatch(this);
+        initPropsAndObserve(this);
+
+        // Call setup function with props and render result
+        const result = setup?.call(this, this.props);
+        createFragment(result || [result], null, this.#shadow);
+
+        runHook("beforeMount");
+      });
+    }
+
+    connectedCallback() {
+      if (this.#mounted) return;
+      this.#mounted = true;
+      runHook("mount");
+    }
+
+    disconnectedCallback() {
+      runHook("destroy");
+      this._cleanup.forEach((cleanup) => cleanup());
+      this._cleanup = [];
+      this.#mounted = false;
+    }
+  };
 
 /**
  * Registers a custom element with the given tag name and setup function.
@@ -96,14 +97,14 @@ const BaseComponent = (setup, { mode } = {}) =>
  * @returns {undefined}
  */
 export const component = (tagName, setup, options = {}) => {
-    if (typeof customElements !== "undefined") {
-        if (!REGEX_TAG_NAME.test(tagName))
-            return error("component", `Invalid tag name: ${tagName}`, "error");
+  if (typeof customElements !== "undefined") {
+    if (!REGEX_TAG_NAME.test(tagName))
+      return error("component", `Invalid tag name: ${tagName}`, "error");
 
-        if (customElements.get(tagName))
-            return error("component", `${tagName} ya registrado`, "warn");
+    if (customElements.get(tagName))
+      return error("component", `${tagName} ya registrado`, "warn");
 
-        // Register the component
-        customElements.define(tagName, BaseComponent(setup, options));
-    }
+    // Register the component
+    customElements.define(tagName, BaseComponent(setup, options));
+  }
 };
