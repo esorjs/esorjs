@@ -2,6 +2,13 @@
   "name": "esor",
   "version": "0.2.21",
   "description": "JavaScript framework for dynamic Web applications based on Web Components",
+  "keywords": [
+    "web-components",
+    "esor",
+    "framework",
+    "customElements",
+    "shadowDOM"
+  ],
   "author": "Juan Cristobal",
   "license": "MIT",
   "type": "module",
