@@ -1,47 +1,47 @@
 <p align="center">
-<a href="https://github.com/esorjs/esor/wiki" target="_blank">
-    <img src="./assets/esor_logo.png" alt="Esor Logo" width="200"/> 
- </a>
-<p align="center"><strong>Fast, light and modern</strong></p>
-
-<h4 align="center"><strong>All the power of Web Components and more in just 3 KB.<strog></h4>
-
+  <a href="https://github.com/esorjs/esor/wiki" target="_blank">
+    <img src="./assets/esor_logo.png" alt="Esor Logo" width="200" />
+  </a>
 </p>
 
-<p>Esor is a lightweight and efficient JavaScript framework for building reactive user interfaces, leveraging native Web Components, signal-based reactivity and an optimized templating engine.</p>
+<p align="center"><strong>Fast, light and modern</strong></p>
+<p align="center"><strong>All the power of Web Components and more in just 3 KB.</strong></p>
+
+---
+
+**Esor** is a lightweight and efficient JavaScript framework for building reactive user interfaces, leveraging native Web Components, signal-based reactivity, and an optimized templating engine.
 
 ### 🔥 Main Features
 
-- **_Native Web Components:_** Creates encapsulated components with Shadow DOM.
-- **_Signal based reactivity:_** Inspired by SolidJS, with functions such as `signal`, `effect` and `computed`.
-- **_Declarative templating:_** Syntax similar to lit-html to define templates declaratively.
-- **_Efficient DOM:_** Efficient reconciliation system, accurate and optimized updates, no Virtual DOM.
-- **Events and Lifecycle:** Define hooks and manage events in a modular way.
-- **_Optimal Speed:_** Performance-centric architecture.
-- **_Simple API:_** API and patterns known from `React` and `SolidJs`.
-- **_No compilation required._**
+- **Native Web Components:** Encapsulated components using Shadow DOM.
+- **Signal-based Reactivity:** Inspired by SolidJS, with functions like `signal`, `effect`, and `computed`.
+- **Declarative Templating:** Template syntax similar to lit-html.
+- **Efficient DOM Reconciliation:** Optimized updates without a Virtual DOM.
+- **Lifecycle & Events:** Modular hooks and event management.
+- **Optimal Speed:** Performance-centric architecture.
+- **Simple API:** Familiar patterns from React and SolidJS.
+- **No Compilation Required.**
 
-### 📖 More information at the [Esor Website ➞](https://github.com/esorjs/esor/wiki)
+### 📖 More Information
 
-<table border="0">
-<tbody>
-<tr>
-<td>
+Learn more on our [Esor Website ➞](https://github.com/esorjs/esor/wiki).
+
+---
+
+### 🔘 Badges
 
 [![Version](https://img.shields.io/npm/v/esor.svg)](https://www.npmjs.com/package/esor)  
 [![License](https://img.shields.io/npm/l/esor.svg)](https://github.com/esorjs/esor/blob/main/LICENSE)  
-[![Downloads](https://img.shields.io/npm/dm/esor.svg)](https://www.npmjs.com/package/esor)
+[![Downloads](https://img.shields.io/npm/dm/esor.svg)](https://www.npmjs.com/package/esor)  
 
-[![gzip size](https://img.badgesize.io/https://unpkg.com/esor/dist/esor.min.js?compression=gzip&label=gzip)](https://unpkg.com/esor/dist/esor.min.js)
-[![brotli size](https://img.badgesize.io/https://unpkg.com/esor/dist/esor.min.js?compression=brotli&label=brotli)](https://unpkg.com/esor/dist/esor.min.js)
+[![gzip size](https://img.badgesize.io/https://unpkg.com/esor/dist/esor.min.js?compression=gzip&label=gzip)](https://unpkg.com/esor/dist/esor.min.js)  
+[![brotli size](https://img.badgesize.io/https://unpkg.com/esor/dist/esor.min.js?compression=brotli&label=brotli)](https://unpkg.com/esor/dist/esor.min.js)  
 
-[![Published on webcomponents.org](https://img.shields.io/badge/webcomponents.org-published-blue.svg)](https://www.webcomponents.org/element/esorjs/esor)
-</td>
-</tr>
-</tbody>
-</table>
+[![Published on webcomponents.org](https://img.shields.io/badge/webcomponents.org-published-blue.svg)](https://www.webcomponents.org/element/esorjs/esor)  
+[![Twitter Follow](https://img.shields.io/twitter/follow/esor_js.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=esor_js)  
+[![Discord](https://img.shields.io/discord/1334318737704357930.svg?style=social&logo=discord&label=Discord)](https://discord.com/channels/1334318737704357930/1334318738140299354)
 
-You can find some awesome libraries in the [awesome-esor list](https://github.com/esorjs/awesome-esor) :sunglasses:
+You can also check out some awesome libraries in the [awesome-esor list](https://github.com/esorjs/awesome-esor) 😎.
 
 ---
 
@@ -51,7 +51,7 @@ Install Esor using npm or yarn:
 
 ```bash
 npm install esor
-# o
+# or
 yarn add esor
 ```
 
@@ -59,7 +59,7 @@ yarn add esor
 
 ### ⚛️ Basic Usage
 
-Here is an example of a counter using the new API:
+Below is an example of a counter using the new API:
 
 ```javascript
 import { component, html, signal } from "esor";
@@ -69,30 +69,17 @@ component("my-counter", () => {
 
   return html`
     <div>
-      <p>Contador: ${count()}</p>
-      <button onclick=${() => count(count() + 1)}>Incrementar</button>
+      <p>Counter: ${count()}</p>
+      <button onclick=${() => count(count() + 1)}>Increment</button>
     </div>
   `;
 });
 ```
 
 > **Note:**  
-> In the new API, the `signal` function is used to create reactive values. To get the current value, it is invoked as a function: `count()`, and to update it, it is called by passing the new value as an argument: `count(newValue)`.
+> In the new API, the `signal` function is used to create reactive values. To retrieve the current value, call `count()`, and to update it, call `count(newValue)`.
 
----
-
-use it like this:
-
-<!--
-```
-<custom-element-demo>
- <template>
-  <link rel="import" href="../demo/my-counter.html">
-   <next-code-block></next-code-block>
- </template>
-</custom-element-demo>
-```
--->
+Use it in your HTML like this:
 
 ```html
 <my-counter></my-counter>
@@ -102,16 +89,16 @@ use it like this:
 
 ### 📚 Documentation
 
-For more details about the API, check the [official documentation].(https://github.com/esorjs/esor/wiki).
+For more detailed information about the API, please check the [official documentation](https://github.com/esorjs/esor/wiki).
 
 ---
 
 ### 🫶🏻 Contribute
 
-Contributions are welcome! See our [contribution guidelines].(https://github.com/esorjs/esor/blob/main/CONTRIBUTING.md) before sending a pull request.
+Contributions are welcome! Please review our [Contribution Guidelines](https://github.com/esorjs/esor/blob/main/CONTRIBUTING.md) before submitting a pull request.
 
 ---
 
 ### 🔖 License
 
-This project is distributed under the MIT license. See the file [LICENSE](https://github.com/esorjs/esor/blob/main/LICENSE) for more details.
+This project is distributed under the MIT license. See the [LICENSE](https://github.com/esorjs/esor/blob/main/LICENSE) file for more details.
