@@ -1,4 +1,4 @@
-import { component, html, signal } from "../src/component";
+import { component, html, signal } from "../dist/esor.min.js";
 
 component("my-counter", () => {
   const count = signal(0);
