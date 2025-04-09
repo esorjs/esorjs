@@ -1,6 +1,6 @@
 {
   "name": "esor",
-  "version": "0.2.23",
+  "version": "0.2.24",
   "description": "JavaScript framework for dynamic Web applications based on Web Components",
   "keywords": [
     "web-components",
@@ -11,6 +11,7 @@
   ],
   "author": "Juan Cristobal",
   "license": "MIT",
+  "repository": "https://github.com/esorjs/esorjs",
   "type": "module",
   "main": "dist/esor.min.js",
   "files": [
