@@ -1,4 +1,4 @@
-name: Publish ESOR to npm
+name: Publish ESOR framework to npm
 
 on:
   push:
