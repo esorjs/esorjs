@@ -12,7 +12,10 @@
   "author": "Juan Cristobal",
   "license": "MIT",
   "homepage": "https://esorjs.github.io/",
-  "repository": "https://github.com/esorjs/esorjs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/esorjs/esorjs"
+  },
   "type": "module",
   "main": "dist/esor.min.js",
   "files": [
