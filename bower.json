@@ -1,0 +1,22 @@
+{
+    "name": "esor",
+    "description": "Tu descripción del framework ESOR",
+    "main": "src/index.js",
+    "authors": [
+      "Juan CristobalGómez Durán <juancristobalgd1@gmail.com>"
+    ],
+    "license": "MIT",
+    "keywords": [
+      "web-components",
+      "esor",
+      "framework"
+    ],
+    "homepage": "https://github.com/esorjs/esorjs",
+    "ignore": [
+      "**/.*",
+      "node_modules",
+      "bower_components",
+      "test",
+      "tests"
+    ]
+  }
