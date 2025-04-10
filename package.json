@@ -1,6 +1,6 @@
 {
   "name": "esor",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "JavaScript framework for dynamic Web applications based on Web Components",
   "keywords": [
     "web-components",

@@ -1,5 +1,5 @@
 let activeEffect = null;
-let runCount = 0;
+const effectStack = [];
 
 /**
  * Creates a reactive signal that notifies subscribers when its value changes.
@@ -7,21 +7,21 @@ let runCount = 0;
  * @returns {Function} - Getter/setter function to access and modify the value.
  */
 const signal = (initial) => {
-    let val = initial;
-    const subs = new Set();
-    const getterSetter = (value) => {
-        if (value === undefined) {
-            if (activeEffect) subs.add(activeEffect);
-            return val;
-        }
-        const computed = typeof value === "function" ? value(val) : value;
-        if (!Object.is(computed, val)) {
-            val = computed;
-            subs.forEach((fn) => fn());
-        }
-        return val;
-    };
-    return getterSetter;
+  let val = initial;
+  const subs = new Set();
+  const getterSetter = (value) => {
+    if (value === undefined) {
+      if (activeEffect) subs.add(activeEffect);
+      return val;
+    }
+    const computed = typeof value === "function" ? value(val) : value;
+    if (!Object.is(computed, val)) {
+      val = computed;
+      subs.forEach((fn) => fn());
+    }
+    return val;
+  };
+  return getterSetter;
 };
 
 /**
@@ -30,21 +30,21 @@ const signal = (initial) => {
  * @returns {Function} - A function to clean up the effect.
  */
 const effect = (fn) => {
-    let isRunning = false;
-    const reactive = () => {
-        if (isRunning) return;
-        isRunning = true;
-        const prev = activeEffect;
-        activeEffect = reactive;
-        try {
-            fn();
-        } finally {
-            activeEffect = prev;
-            isRunning = false;
-        }
-    };
-    reactive();
-    return () => subs.delete(reactive);
+  let isRunning = false;
+  const reactive = () => {
+    if (isRunning) return;
+    isRunning = true;
+    const prev = activeEffect;
+    activeEffect = reactive;
+    try {
+      fn();
+    } finally {
+      activeEffect = prev;
+      isRunning = false;
+    }
+  };
+  reactive();
+  return () => subs.delete(reactive);
 };
 
 /**
@@ -53,9 +53,9 @@ const effect = (fn) => {
  * @returns {Function} - A getter function with a `.dispose` method to clean up the computed value.
  */
 const computed = (fn) => {
-    const computedSignal = signal();
-    effect(() => computedSignal(fn()));
-    return () => computedSignal();
+  const computedSignal = signal();
+  effect(() => computedSignal(fn()));
+  return () => computedSignal();
 };
 
 /**
@@ -63,14 +63,15 @@ const computed = (fn) => {
  * @param {Function} callback - The function to execute within the batch.
  * @returns {any} - The result of the callback function.
  */
+
 const batch = (fn) => {
-    const previous = activeEffect;
-    activeEffect = { id: runCount++ };
-    try {
-        return fn();
-    } finally {
-        activeEffect = previous;
-    }
+  if (effectStack.length > 0) return fn();
+  effectStack.push(true);
+  try {
+    return fn();
+  } finally {
+    effectStack.pop();
+  }
 };
 
 export { signal, effect, computed, batch };
