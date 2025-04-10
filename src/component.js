@@ -53,7 +53,7 @@ const BaseComponent = (setup, options = {}) =>
 
     constructor() {
       super();
-      Promise.resolve().then(() => {
+      queueMicrotask(() => {
         // Initialize component
         createLifecycle(this);
         initDispatch(this);
