@@ -1,4 +1,31 @@
-import { signal } from "./hooks/reactivity";
+import { signal } from "./hooks/reactivity.js";
+
+const NUM_REGEX = /^-?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/;
+
+/**
+ * Parse an attribute value to an appropriate JS type.
+ *
+ * Converts an attribute value to an appropriate JS type. If the value is null or undefined,
+ * Returns an empty string. If the value is “true” or “false”, returns the corresponding boolean value.
+ * corresponding boolean value. If the value can be parsed as a number (using a regular expression), * returns the corresponding boolean * value.
+ If the value can be parsed as a number (using a regular * expression), it returns the number. If the value can be parsed as a JSON object or array (using a regular * expression), returns the number.
+ * (using a regular expression and JSON.parse), returns the object or array. Otherwise, it returns the original value.
+ * otherwise, it returns the original value.
+ *
+ * @param {any} value - The value of the attribute to parse.
+ * @returns {any} The parsed value.
+ */
+function parseAttributeValue(value) {
+    if (value == null) return "";
+    if (value === "true") return true;
+    if (value === "false") return false;
+    if (NUM_REGEX.test(value)) return Number(value);
+    try {
+        return JSON.parse(value);
+    } catch {
+        return value;
+    }
+}
 
 /**
  * Initializes properties from attributes of a host element and observes future attribute changes.
@@ -31,32 +58,4 @@ export function initPropsAndObserve(host) {
 
     observer.observe(host, { attributes: true });
     host._cleanup.push(() => observer.disconnect());
-}
-
-/**
- * Parsea un valor de atributo a un tipo JS apropiado.
- *
- * Convierte un valor de atributo a un tipo JS apropiado. Si el valor es nulo o indefinido,
- * devuelve una cadena vac . Si el valor es "true" o "false", devuelve el valor booleano
- * correspondiente. Si el valor se puede parsear como un n mero (utilizando una expresi n
- * regular), devuelve el n mero. Si el valor se puede parsear como un objeto o arreglo JSON
- * (utilizando una expresi n regular y JSON.parse), devuelve el objeto o arreglo. En caso
- * contrario, devuelve el valor original.
- *
- * @param {any} value - El valor del atributo a parsear.
- * @returns {any} El valor parseado.
- */
-function parseAttributeValue(value) {
-    if (value === null || value === undefined) return "";
-    if (value === "true") return true;
-    if (value === "false") return false;
-    if (/^-?\d+(\.\d+)?$/.test(value)) return Number(value);
-    if (/^[{[]/.test(value)) {
-        try {
-            return JSON.parse(value);
-        } catch {
-            return value;
-        }
-    }
-    return value;
 }

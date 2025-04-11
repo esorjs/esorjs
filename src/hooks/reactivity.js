@@ -7,21 +7,26 @@ const effectStack = [];
  * @returns {Function} - Getter/setter function to access and modify the value.
  */
 const signal = (initial) => {
-  let val = initial;
-  const subs = new Set();
-  const getterSetter = (value) => {
-    if (value === undefined) {
-      if (activeEffect) subs.add(activeEffect);
-      return val;
-    }
-    const computed = typeof value === "function" ? value(val) : value;
-    if (!Object.is(computed, val)) {
-      val = computed;
-      subs.forEach((fn) => fn());
-    }
-    return val;
-  };
-  return getterSetter;
+    let val = initial;
+    const subs = [];
+    const getterSetter = (value) => {
+        if (value === undefined) {
+            if (activeEffect && !subs.includes(activeEffect))
+                subs.push(activeEffect);
+
+            return val;
+        }
+
+        const newValue = typeof value === "function" ? value(val) : value;
+        if (!Object.is(newValue, val)) {
+            val = newValue;
+            const s = subs.slice();
+            for (let i = 0; i < s.length; i++) s[i]();
+        }
+
+        return val;
+    };
+    return getterSetter;
 };
 
 /**
@@ -30,21 +35,21 @@ const signal = (initial) => {
  * @returns {Function} - A function to clean up the effect.
  */
 const effect = (fn) => {
-  let isRunning = false;
-  const reactive = () => {
-    if (isRunning) return;
-    isRunning = true;
-    const prev = activeEffect;
-    activeEffect = reactive;
-    try {
-      fn();
-    } finally {
-      activeEffect = prev;
-      isRunning = false;
-    }
-  };
-  reactive();
-  return () => subs.delete(reactive);
+    let isRunning = false;
+    const reactive = () => {
+        if (isRunning) return;
+        isRunning = true;
+        const prev = activeEffect;
+        activeEffect = reactive;
+        try {
+            fn();
+        } finally {
+            activeEffect = prev;
+            isRunning = false;
+        }
+    };
+    reactive();
+    return () => subs.delete(reactive);
 };
 
 /**
@@ -53,9 +58,9 @@ const effect = (fn) => {
  * @returns {Function} - A getter function with a `.dispose` method to clean up the computed value.
  */
 const computed = (fn) => {
-  const computedSignal = signal();
-  effect(() => computedSignal(fn()));
-  return () => computedSignal();
+    const computedSignal = signal();
+    effect(() => computedSignal(fn()));
+    return () => computedSignal();
 };
 
 /**
@@ -65,13 +70,17 @@ const computed = (fn) => {
  */
 
 const batch = (fn) => {
-  if (effectStack.length > 0) return fn();
-  effectStack.push(true);
-  try {
-    return fn();
-  } finally {
-    effectStack.pop();
-  }
+    batchDepth++;
+    try {
+        return fn();
+    } finally {
+        batchDepth--;
+        if (batchDepth === 0) {
+            const subs = new Set();
+            effectStack.forEach((effect) => subs.add(effect));
+            subs.forEach((effect) => effect());
+        }
+    }
 };
 
 export { signal, effect, computed, batch };

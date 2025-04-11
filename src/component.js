@@ -54,18 +54,16 @@ const BaseComponent = (setup, options = {}) =>
 
         constructor() {
             super();
-            queueMicrotask(() => {
-                // Initialize component
-                createLifecycle(this);
-                initDispatch(this);
-                initPropsAndObserve(this);
+            // Initialize component
+            createLifecycle(this);
+            initDispatch(this);
+            initPropsAndObserve(this);
 
-                // Call setup function with props and render result
-                const result = setup?.call(this, this.props);
-                createFragment(result || [result], null, this.#shadow);
+            // Call setup function with props and render result
+            const result = setup?.call(this, this.props);
+            createFragment(result || [result], null, this.#shadow);
 
-                runHook("beforeMount");
-            });
+            runHook("beforeMount");
         }
 
         connectedCallback() {
