@@ -15,13 +15,15 @@ const NUM_REGEX = /^-?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/;
  * @param {any} v - The value of the attribute to parse.
  * @returns {any} The parsed value.
  */
- function parseAttributeValue(v) {
+export function parseAttributeValue(v) {
     if (v == null) return "";
     if (v === "true") return true;
     if (v === "false") return false;
     if (NUM_REGEX.test(v)) return Number(v);
     if (typeof v === "string" && (v[0] === "{" || v[0] === "["))
-        return JSON.parse(v);
+        try {
+            return JSON.parse(v);
+        } catch {}
 
     return v;
 }
