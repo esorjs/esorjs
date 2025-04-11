@@ -12,19 +12,18 @@ const NUM_REGEX = /^-?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/;
  * (using a regular expression and JSON.parse), returns the object or array. Otherwise, it returns the original value.
  * otherwise, it returns the original value.
  *
- * @param {any} value - The value of the attribute to parse.
+ * @param {any} v - The value of the attribute to parse.
  * @returns {any} The parsed value.
  */
-function parseAttributeValue(value) {
-    if (value == null) return "";
-    if (value === "true") return true;
-    if (value === "false") return false;
-    if (NUM_REGEX.test(value)) return Number(value);
-    try {
-        return JSON.parse(value);
-    } catch {
-        return value;
-    }
+ function parseAttributeValue(v) {
+    if (v == null) return "";
+    if (v === "true") return true;
+    if (v === "false") return false;
+    if (NUM_REGEX.test(v)) return Number(v);
+    if (typeof v === "string" && (v[0] === "{" || v[0] === "["))
+        return JSON.parse(v);
+
+    return v;
 }
 
 /**
