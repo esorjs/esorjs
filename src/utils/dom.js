@@ -1,41 +1,39 @@
 /**
- * Marks a node to identify it as system-generated
- * @param {Node} node - The node to be marked
- * @returns {Node} The same node, allowing for chaining
- */
-
-export function markNode(node) {
-    if (node) node.__nodeGroups = true;
-    return node;
-}
-
-/**
- * Creates a DocumentFragment from an array of nodes, marking each node
- * to identify it as system-generated.
+ * Creates a DocumentFragment from an array of nodes, with optional marking and parent appending.
  * @param {Array<Node>} nodes - Nodes to include in the fragment.
- * @returns {DocumentFragment} The created DocumentFragment containing the marked nodes.
- */
-export function markedFragment(nodes) {
-    return createFragment(nodes, markNode);
-}
-
-/**
- * Creates a DocumentFragment from an array of nodes, optionally processing each node with a function.
- * @param {Array<Node>} nodes - Nodes to include in the fragment.
- * @param {Function} [fn=null] - Optional function to process each node. The function takes the node and the fragment as parameters and returns a processed node.
- * @param {Node} [parent=null] - Optional parent node to append the fragment to.
+ * @param {Object} [options=null] - Optional configuration object.
+ * @param {boolean} [options.mark=false] - If true, marks each node as system-generated.
+ * @param {Node} [options.parent=null] - Optional parent node to append the fragment to.
  * @returns {DocumentFragment} The created DocumentFragment containing the nodes.
  */
-export function createFragment(nodes, fn = null, parent = null) {
+
+export function createFragment(nodes, options = null) {
     const frag = document.createDocumentFragment();
     if (!nodes?.length) return frag;
+
+    let shouldMark = false;
+    let parent = null;
+
+    if (options && typeof options === "object") {
+        // If options is an object, extract properties
+        shouldMark = !!options.mark;
+        parent = options.parent || null;
+    }
+
     for (let node of nodes) {
         if (!node) continue;
-        node = typeof fn === "function" ? fn(node, frag) : node;
+
+        // Mark if needed
+        if (shouldMark && node) node.__nodeGroups = true;
+
+        // Handle array or single node
         Array.isArray(node)
-            ? frag.appendChild(createFragment(node, fn))
+            ? frag.appendChild(createFragment(node, options))
             : frag.appendChild(node);
     }
+
+    // Append to parent if specified
     if (parent && frag.childNodes.length) parent.appendChild(frag);
+
     return frag;
 }

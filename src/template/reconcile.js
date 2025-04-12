@@ -1,4 +1,4 @@
-import { markedFragment } from "../utils/dom";
+import { createFragment } from "../utils/dom";
 
 /**
  * Reconciles the DOM nodes by comparing new node groups with previous ones and updating the DOM accordingly.
@@ -54,23 +54,24 @@ export function reconcile(newGroupsData, markerNode) {
                 //[UPDATE]
                 removeNodes(prevGroup.nodes);
                 parent.insertBefore(
-                    markedFragment(newGroup.nodes),
+                    createFragment(newGroup.nodes, { mark: true }),
                     lastNode.nextSibling
                 );
             } else {
                 //  [KEEP/MOVE]
                 const refNode = lastNode.nextSibling;
                 if (prevGroup.nodes[0] !== refNode) {
-                    const frag = document.createDocumentFragment();
-                    for (const n of prevGroup.nodes) frag.appendChild(n);
-                    parent.insertBefore(frag, refNode);
+                    parent.insertBefore(
+                        createFragment(prevGroup.nodes),
+                        refNode
+                    );
                 }
                 newGroup.nodes = prevGroup.nodes; // Reuse nodes
             }
         } else {
             // [ADD]
             parent.insertBefore(
-                markedFragment(newGroup.nodes),
+                createFragment(newGroup.nodes, { mark: true }),
                 lastNode.nextSibling
             );
         }

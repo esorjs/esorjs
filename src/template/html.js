@@ -1,22 +1,10 @@
 import { sanitizeHtml } from "../utils/parser";
 import { effect } from "../hooks/reactivity";
-import { markedFragment, markNode } from "../utils/dom";
+import { createFragment } from "../utils/dom";
 import { reconcile } from "./reconcile";
 
 const templCache = new WeakMap();
 const MARKER = "\ufeff"; // Invisible marker for processing
-
-/**
- * Creates a <template> element from an HTML string.
- *
- * @param {string} htmlContent - The HTML string.
- * @returns {HTMLTemplateElement} The generated template.
- */
-function createTemplate(htmlContent) {
-    const template = document.createElement("template");
-    template.innerHTML = htmlContent;
-    return template;
-}
 
 /**
  * Assigns attributes, events, or content to a node, as appropriate.
@@ -59,6 +47,29 @@ export function setAttribute(node, attr, value) {
 }
 
 /**
+ * Replaces all nodes following a marker node with new nodes.
+ *
+ * @param {Node} markerNode - The marker node.
+ * @param {Array<Node>} newNodes - The new nodes to insert.
+ */
+function replaceNodes(markerNode, newNodes) {
+    const parent = markerNode.parentNode;
+    let next = markerNode.nextSibling;
+    while (next && next.__nodeGroups) {
+        if (next._cleanup) next._cleanup();
+        parent.removeChild(next);
+        next = markerNode.nextSibling;
+    }
+    if (newNodes?.length) {
+        insertFragment(
+            createFragment(newNodes, { mark: true }),
+            parent,
+            markerNode.nextSibling
+        );
+    }
+}
+
+/**
  * Updates the content of a node.
  *
  * If the value is an array, the reconciliation algorithm is used.
@@ -75,7 +86,6 @@ function setContent(node, value) {
             const textNode = document.createTextNode(
                 sanitizeHtml(typeof val === "string" ? val : String(val ?? ""))
             );
-            markNode(textNode);
             replaceNodes(node, [textNode]);
         }
     };
@@ -83,29 +93,6 @@ function setContent(node, value) {
     typeof value === "function"
         ? effect(() => updateContent(value()))
         : updateContent(value);
-}
-
-/**
- * Replaces all nodes following a marker node with new nodes.
- *
- * @param {Node} MARKERNode - The marker node.
- * @param {Array<Node>} newNodes - The new nodes to insert.
- */
-function replaceNodes(MARKERNode, newNodes) {
-    const parent = MARKERNode.parentNode;
-    let next = MARKERNode.nextSibling;
-    while (next && next.__nodeGroups) {
-        if (next._cleanup) next._cleanup();
-        parent.removeChild(next);
-        next = MARKERNode.nextSibling;
-    }
-    if (newNodes?.length) {
-        insertFragment(
-            markedFragment(newNodes),
-            parent,
-            MARKERNode.nextSibling
-        );
-    }
 }
 
 /**
@@ -120,6 +107,18 @@ function insertFragment(fragment, parent, refNode = null) {
     refNode && refNode.parentNode === parent
         ? parent.insertBefore(fragment, refNode)
         : parent.appendChild(fragment);
+}
+
+/**
+ * Creates a <template> element from an HTML string.
+ *
+ * @param {string} htmlContent - The HTML string.
+ * @returns {HTMLTemplateElement} The generated template.
+ */
+function createTemplate(htmlContent) {
+    const template = document.createElement("template");
+    template.innerHTML = htmlContent;
+    return template;
 }
 
 /**
