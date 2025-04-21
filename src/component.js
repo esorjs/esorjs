@@ -1,9 +1,7 @@
-import { createLifecycle } from "./lifecycle.js";
-import { initPropsAndObserve } from "./props.js";
-import { initDispatch } from "./events.js";
-import { createFragment } from "./utils/dom.js";
-import { handleError as error } from "./utils/error.js";
-
+import { createLifecycle } from "./lifecycle";
+import { initPropsAndObserve } from "./props";
+import { initDispatch } from "./events";
+import { createFragment } from "./utils/dom";
 const REGEX_TAG_NAME = /^[a-z][a-z0-9-]*$/;
 const SHADOW_MODE = "open"; // closed || open
 
@@ -39,39 +37,44 @@ const SHADOW_MODE = "open"; // closed || open
  *         functions in the `_cleanup` array.
  */
 const BaseComponent = (setup, options = {}) =>
-    class extends HTMLElement {
-        #shadow = this.attachShadow({ mode: options.mode || SHADOW_MODE });
-        #mounted = false;
-        props = Object.create(null);
-        _cleanup = [];
+  class extends HTMLElement {
+    #shadow = this.attachShadow({ mode: options.mode || SHADOW_MODE });
+    #mounted = false;
+    props = Object.create(null);
+    _cleanup = [];
 
-        constructor() {
-            super();
-            // Initialize component
-            createLifecycle(this);
-            initDispatch(this);
-            initPropsAndObserve(this);
+    constructor() {
+      super();
+      // Initialize component
+      createLifecycle(this);
+      initDispatch(this);
+      initPropsAndObserve(this);
 
-            // Call setup function with props and render result
-            const result = setup?.call(this, this.props);
-            createFragment(result || [result], { parent: this.#shadow });
+      // Call setup function with props and render result
+      const result = setup?.call(this, this.props);
 
-            this.runHook("beforeMount");
-        }
+      // Si el resultado es una función, ejecútala para obtener nodos reales
+      const content = typeof result === "function" ? result() : result;
 
-        connectedCallback() {
-            if (this.#mounted) return;
-            this.#mounted = true;
-            this.runHook("mount");
-        }
+      // Ahora usa content para crear el fragmento
+      createFragment(content || [content], { parent: this.#shadow });
 
-        disconnectedCallback() {
-            this.runHook("destroy");
-            this._cleanup.forEach((cleanup) => cleanup());
-            this._cleanup = [];
-            this.#mounted = false;
-        }
-    };
+      this.runHook("beforeMount");
+    }
+
+    connectedCallback() {
+      if (this.#mounted) return;
+      this.#mounted = true;
+      this.runHook("mount");
+    }
+
+    disconnectedCallback() {
+      this.runHook("destroy");
+      this._cleanup.forEach((cleanup) => cleanup());
+      this._cleanup = [];
+      this.#mounted = false;
+    }
+  };
 
 /**
  * Registers a custom element with the given tag name and setup function.
@@ -89,12 +92,10 @@ const BaseComponent = (setup, options = {}) =>
  * @returns {undefined}
  */
 export const component = (tagName, setup, options = {}) => {
-    if (typeof customElements == "undefined") return;
-    if (!REGEX_TAG_NAME.test(tagName))
-        return error("component", `Invalid tag name: ${tagName}`, "error");
-    if (customElements.get(tagName))
-        return error("component", `${tagName} already registered`, "warn");
-
-    // Register the component
+  if (
+    typeof customElements !== "undefined" &&
+    REGEX_TAG_NAME.test(tagName) &&
+    !customElements.get(tagName)
+  )
     customElements.define(tagName, BaseComponent(setup, options));
 };
