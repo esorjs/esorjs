@@ -2,8 +2,8 @@ import { createLifecycle } from "./lifecycle.js";
 import { initializeProps } from "./props.js";
 import { initDispatch } from "./events.js";
 import { createFragment } from "./utils/dom.js";
- 
-const REGEX_TAG_NAME = /^[a-z][a-z0-9-]*$/;
+
+const REGEX_TAG_NAME = /^[a-z][a-z0-9]*-[a-z0-9-]*$/;
 const SHADOW_MODE = "open"; // closed || open
 
 /**
