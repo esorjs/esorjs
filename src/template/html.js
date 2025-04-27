@@ -1,7 +1,7 @@
-import { sanitizeHtml } from "../utils/parser";
-import { effect } from "../hooks/reactivity";
-import { createFragment } from "../utils/dom";
-import { reconcile } from "./reconcile";
+import { sanitizeHtml } from "../utils/parser.js";
+import { effect } from "../hooks/reactivity.js";
+import { createFragment, joinTruthy } from "../utils/dom.js";
+import { reconcile } from "./reconcile.js";
 
 const templCache = new WeakMap();
 const MARKER = "\ufeff"; // Invisible marker for processing
@@ -31,19 +31,38 @@ const render = (node, attr, value) => {
         } else if (attr === "style" && typeof value === "object") {
             effect(() => Object.assign(node.style, value));
         } else {
-            typeof value === "function"
-                ? effect(() => setAttribute(node, attr, value()))
-                : setAttribute(node, attr, value);
+            effect(() =>
+                setAttribute(
+                    node,
+                    attr,
+                    typeof value === "function" ? value() : value
+                )
+            );
         }
         // Render node content
     } else setContent(node, value);
 };
 
+/**
+ * Sets an attribute on a node.
+ *
+ * If the attribute is "value" or "checked", sets the property directly.
+ * If the value is null, undefined, or false, removes the attribute.
+ * Otherwise, sets the attribute with the given value.
+ *
+ * @param {Node} node - The node to update.
+ * @param {string} attr - The attribute name.
+ * @param {any} value - The value to assign.
+ */
 export function setAttribute(node, attr, value) {
     if (attr === "value" || attr === "checked") node[attr] = value;
     else if (value === false || value === null || value === undefined)
         node.removeAttribute(attr);
-    else node.setAttribute(attr, value);
+    else
+        node.setAttribute(
+            attr,
+            typeof value === "object" ? joinTruthy(value) : value
+        );
 }
 
 /**
@@ -55,11 +74,14 @@ export function setAttribute(node, attr, value) {
 function replaceNodes(markerNode, newNodes) {
     const parent = markerNode.parentNode;
     let next = markerNode.nextSibling;
-    while (next && next.__nodeGroups) {
-        if (next._cleanup) next._cleanup();
+
+    // Remove all nodes until the next marker
+    while (next && next._marker) {
+        next._cleanup?.();
         parent.removeChild(next);
         next = markerNode.nextSibling;
     }
+
     if (newNodes?.length) {
         insertFragment(
             createFragment(newNodes, { mark: true }),
@@ -110,18 +132,6 @@ function insertFragment(fragment, parent, refNode = null) {
 }
 
 /**
- * Creates a <template> element from an HTML string.
- *
- * @param {string} htmlContent - The HTML string.
- * @returns {HTMLTemplateElement} The generated template.
- */
-function createTemplate(htmlContent) {
-    const template = document.createElement("template");
-    template.innerHTML = htmlContent;
-    return template;
-}
-
-/**
  * Processes an HTML template and replaces markers with provided values.
  *
  * @param {HTMLTemplateElement} template - The template to process.
@@ -129,36 +139,26 @@ function createTemplate(htmlContent) {
  */
 function processTemplate(template, data) {
     const nodes = [];
-    const walker = document.createTreeWalker(
-        template.content,
-        NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT
-    );
-
+    const walker = document.createTreeWalker(template.content, 1 | 4);
     while (walker.nextNode()) nodes.push(walker.currentNode);
 
     let idx = 0;
     for (let i = 0; i < nodes.length; i++) {
         const n = nodes[i];
-        if (n.nodeType === Node.ELEMENT_NODE && n.attributes.length) {
+        if (n.nodeType === 1 && n.attributes.length) {
             for (const attr of Array.from(n.attributes))
                 if (attr.value === MARKER) render(n, attr.name, data[idx++]);
-        } else if (
-            n.nodeType === Node.TEXT_NODE &&
-            n.nodeValue.includes(MARKER)
-        ) {
+        } else if (n.nodeType === 3 && n.nodeValue.includes(MARKER)) {
             if (n.nodeValue === MARKER) {
                 const comm = document.createComment("");
                 n.parentNode.replaceChild(comm, n);
                 render(comm, null, data[idx++]);
             } else {
-                const tmp = createTemplate(
-                    n.nodeValue.replaceAll(MARKER, "<!>")
-                );
+                const tmp = createNodes(n.nodeValue.replaceAll(MARKER, "<!>"));
                 const children = Array.from(tmp.content.childNodes);
                 for (let j = 0; j < children.length; j++) {
                     const child = children[j];
-                    if (child.nodeType === Node.COMMENT_NODE)
-                        render(child, null, data[idx++]);
+                    if (child.nodeType === 8) render(child, null, data[idx++]);
                 }
                 n.parentNode.replaceChild(tmp.content, n);
             }
@@ -167,34 +167,18 @@ function processTemplate(template, data) {
 }
 
 /**
- * Converts an HTML string into an array of nodes.
+ * Parses an HTML string into a template element or an array of nodes.
  *
- * @param {string} htmlContent - The HTML string.
- * @param {Function|null} [fn=null] - Optional function to process the template.
- * @returns {Array<Node>} The array of generated nodes.
+ * @param {string} html - The HTML string to parse.
+ * @param {Object} [options={}] - Options for output type.
+ * @param {"template"|"nodes"} [options.as="template"] - Whether to return a template or nodes.
+ * @returns {HTMLTemplateElement|Array<Node>} - The parsed template or array of nodes.
  */
-function templateToNodes(htmlContent, fn = null) {
-    const template = createTemplate(htmlContent);
-    if (typeof fn === "function") fn(template);
-    return [...template.content.childNodes];
-}
-
-/**
- * Builds DOM nodes from a template and interpolation data.
- *
- * @param {Array<string>} tpl - The template parts.
- * @param {...any} data - The data to interpolate.
- * @returns {Array<Node>} The created nodes.
- */
-function build(tpl, ...data) {
-    if (tpl.length === 1) return templateToNodes(tpl[0]);
-    if (!data.length) return templateToNodes(tpl.join(""));
-
-    const combined = tpl.join(MARKER);
-    const template = createTemplate(combined);
-    processTemplate(template, data);
-    return [...template.content.childNodes];
-}
+const createNodes = (html, opts) => {
+    const t = document.createElement("template");
+    t.innerHTML = html;
+    return opts?.as === "nodes" ? [...t.content.childNodes] : t;
+};
 
 /**
  * Main function that creates DOM nodes from a template literal and interpolation data.
@@ -203,10 +187,18 @@ function build(tpl, ...data) {
  * @param {...any} data - The data to interpolate.
  * @returns {Array<Node>} The created nodes.
  */
-function html(tpl, ...data) {
-    if (templCache.has(tpl)) return build(templCache.get(tpl), ...data);
-    templCache.set(tpl, tpl);
-    return build(tpl, ...data);
-}
+const html = (tpl, ...data) => {
+    const cachedTpl = templCache.get(tpl) || (templCache.set(tpl, tpl), tpl);
+
+    if (!data.length) {
+        return cachedTpl.length === 1
+            ? createNodes(cachedTpl[0], { as: "nodes" })
+            : createNodes(cachedTpl.join(""), { as: "nodes" });
+    }
+
+    const template = createNodes(cachedTpl.join(MARKER));
+    processTemplate(template, data);
+    return [...template.content.childNodes];
+};
 
 export { html };

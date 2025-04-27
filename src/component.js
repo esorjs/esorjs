@@ -4,7 +4,6 @@ import { initDispatch } from "./events.js";
 import { createFragment } from "./utils/dom.js";
 
 const REGEX_TAG_NAME = /^[a-z][a-z0-9]*-[a-z0-9-]*$/;
-const SHADOW_MODE = "open"; // closed || open
 
 /**
  * A base class for creating custom elements that provides an API for working
@@ -39,7 +38,7 @@ const SHADOW_MODE = "open"; // closed || open
  */
 const BaseComponent = (setup, options = {}) =>
     class extends HTMLElement {
-        #shadow = this.attachShadow({ mode: options.mode || SHADOW_MODE });
+        #shadow = this.attachShadow({ mode: options.shadowMode || "open" });
         #mounted = false;
         props = Object.create(null);
         _cleanup = [];
@@ -53,11 +52,7 @@ const BaseComponent = (setup, options = {}) =>
 
             // Call setup function with props and render result
             const result = setup?.call(this, this.props);
-
-            // Si el resultado es una función, ejecútala para obtener nodos reales
             const content = typeof result === "function" ? result() : result;
-
-            // Ahora usa content para crear el fragmento
             createFragment(content || [content], { parent: this.#shadow });
 
             this.runHook("beforeMount");

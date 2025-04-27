@@ -14,14 +14,25 @@ export function createFragment(nodes, { mark = false, parent = null } = {}) {
 
     for (const node of nodes) {
         if (!node) continue;
-        if (mark && node) node.__nodeGroups = true;
+        if (mark) node._marker = true;
 
-        Array.isArray(node)
-            ? frag.appendChild(createFragment(node, { mark }))
-            : frag.appendChild(node);
+        frag.appendChild(
+            Array.isArray(node) ? createFragment(node, { mark }) : node
+        );
     }
 
     if (parent && frag.childNodes.length) parent.appendChild(frag);
-
     return frag;
+}
+
+/**
+ * Joins the keys of an object whose values are truthy in a space-separated string.
+ *
+ * @param {Object} obj - Object key pairs object: value.
+ * @returns {string} - Space-separated string of keys.
+ */
+export function joinTruthy(obj) {
+    return Object.keys(obj)
+        .reduce((str, key) => (obj[key] ? str + key + " " : str), "")
+        .trim();
 }

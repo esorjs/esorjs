@@ -13,6 +13,6 @@ export function emit(name, detail, target = null) {
         cancelable: true,
     });
 
-    if (target) target.dispatchEvent(event);
+    target?.dispatchEvent(event);
     return event;
 }
