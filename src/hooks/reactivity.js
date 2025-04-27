@@ -1,6 +1,6 @@
 let activeEffect = null;
 let batchDepth = 0;
-const pendingEffects = new Set();
+const effectsQueue = new Set();
 
 /**
  * Creates a reactive se al that notifies subscribers when its value changes.
@@ -21,11 +21,10 @@ const signal = (initial) => {
         const newValue = typeof value === "function" ? value(val) : value;
         if (!Object.is(newValue, val)) {
             val = newValue;
-            if (batchDepth > 0) {
+            if (batchDepth > 0)
                 // Within a batch, add effects to the queue without executing them
-                for (let i = 0; i < subs.length; i++)
-                    pendingEffects.add(subs[i]);
-            } else {
+                for (let i = 0; i < subs.length; i++) effectsQueue.add(subs[i]);
+            else {
                 // Out of a batch, execute bills of exchange immediately
                 const s = subs.slice();
                 for (let i = 0; i < s.length; i++) s[i]();
@@ -101,8 +100,8 @@ const batch = (fn) => {
     } finally {
         batchDepth--;
         if (batchDepth === 0) {
-            const effectsToRun = Array.from(pendingEffects);
-            pendingEffects.clear();
+            const effectsToRun = Array.from(effectsQueue);
+            effectsQueue.clear();
             effectsToRun.forEach((eff) => eff());
         }
     }
