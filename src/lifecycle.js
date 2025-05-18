@@ -1,39 +1,40 @@
-import { handleError } from "./utils/error";
+import { handleError } from "./utils/error.js";
 
 let ctx = null;
 
+// List of available hooks
+const LIFECYCLE_HOOKS = [
+    "beforeMount",
+    "mount",
+    "beforeUpdate",
+    "update",
+    "destroy",
+];
+
 /**
  * Create a life cycle system for the component.
- *
  * @param {object} host - The host of the component.
- * @returns {void}
- * @throws Error - If called outside the component configuration.
  */
 export const createLifecycle = (host) => {
     ctx = host;
-    host._lifecycles = {
-        beforeMount: [],
-        mount: [],
-        beforeUpdate: [],
-        update: [],
-        destroy: [],
-    };
+
+    host._lifecycles = Object.fromEntries(
+        LIFECYCLE_HOOKS.map((hook) => [hook, []])
+    );
 
     host.runHook = (key) => {
-        const h = host._lifecycles?.[key];
-        if (!h || !h.length) return;
-        for (let i = 0; i < h.length; i++)
-            queueMicrotask(() => h[i].call(host));
+        const hooks = host._lifecycles?.[key];
+        if (!hooks?.length) return;
+
+        for (let i = 0; i < hooks.length; i++)
+            queueMicrotask(() => hooks[i].call(host));
     };
 };
 
 /**
  * Adds a hook to the lifecycle system.
- *
- * @param {string} key - The lifecycle key identifying the set of hooks to add the function to.
- * @param {Function} fn - The function to add to the lifecycle hook.
- * @returns {void}
- * @throws Error - If called outside component setup.
+ * @param {string} key - The lifecycle key.
+ * @param {Function} fn - The function to add.
  */
 const addHook = (key, fn) => {
     if (!ctx || !ctx._lifecycles) {
@@ -43,12 +44,20 @@ const addHook = (key, fn) => {
     ctx._lifecycles[key].push(fn);
 };
 
-// Public API of Hooks, without the need to pass the instance explicitly.
-export const beforeMount = (fn) => addHook("beforeMount", fn);
-export const onMount = (fn) => addHook("mount", fn);
-export const beforeUpdate = (fn) => addHook("beforeUpdate", fn);
-export const onUpdate = (fn) => addHook("update", fn);
-export const onDestroy = (fn) => addHook("destroy", fn);
+// Generate hook functions dynamically
+const exportedHooks = {};
+LIFECYCLE_HOOKS.forEach((hook) => {
+    // Convert names like “beforeMount” to “beforeMount” and “mount” to “onMount”.
+    const fnName = hook.startsWith("before")
+        ? hook
+        : `on${hook.charAt(0).toUpperCase() + hook.slice(1)}`;
+    exportedHooks[fnName] = (fn) => addHook(hook, fn);
+});
+
+export const { beforeMount, onMount, beforeUpdate, onUpdate, onDestroy } =
+    exportedHooks;
+
+// onEffect is a special case that handles cleaning
 export const onEffect = (fn) => {
     const cleanup = fn();
     if (typeof cleanup === "function") addHook("destroy", cleanup);

@@ -102,16 +102,14 @@ function replaceNodes(markerNode, newNodes) {
  */
 function setContent(node, value) {
     const updateContent = (val) => {
-        if (typeof val === "boolean") val = "";
+        if (val === true || val === false) val = "";
         if (Array.isArray(val)) reconcile(val, node);
         else {
-            const textNode = document.createTextNode(
-                sanitizeHtml(typeof val === "string" ? val : String(val ?? ""))
-            );
+            const textValue = val == null ? "" : String(val);
+            const textNode = document.createTextNode(sanitizeHtml(textValue));
             replaceNodes(node, [textNode]);
         }
     };
-
     typeof value === "function"
         ? effect(() => updateContent(value()))
         : updateContent(value);

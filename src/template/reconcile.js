@@ -101,20 +101,18 @@ function patchNodes(prevNodes, nextNodes, parent) {
 }
 
 /**
- * Patches the attributes of a DOM element by comparing the existing attributes with the
- * ones of another element. Updates the element's attributes by setting or removing them as
- * necessary. This function is used by the `patchNodes` function to update the attributes
- * of elements.
- *
- * @param {Element} p - The element to patch.
- * @param {Element} next - The element from which to copy the attributes.
- */
-function patchAttributes(p, next) {
-    const seen = new Set();
-    for (const { name, value } of next.attributes) {
-        if (p.getAttribute(name) !== value) p.setAttribute(name, value);
-        seen.add(name);
+  Patches the attributes of a DOM element more efficiently.
+  @param {Element} p - The element to patch.
+  @param {Element} next - The element from which to copy the attributes.
+*/
+ function patchAttributes(p, next) {
+    const curr = {}, seen = new Set();
+    for (const { name: n, value: v } of p.attributes) curr[n] = v;
+
+    for (const { name: n, value: v } of next.attributes) {
+        if (curr[n] !== v) p.setAttribute(n, v);
+        seen.add(n);
     }
-    for (const { name } of p.attributes)
-        if (!seen.has(name)) p.removeAttribute(name);
+
+    for (const n in curr) if (!seen.has(n)) p.removeAttribute(n);
 }
