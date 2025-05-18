@@ -45,7 +45,11 @@ const BaseComponent = (setup, options = {}) =>
 
         constructor() {
             super();
-            // Initialize component
+            this.#initializeComponent();
+            this.runHook("beforeMount");
+        }
+
+        #initializeComponent() {
             createLifecycle(this);
             initDispatch(this);
             initializeProps(this);
@@ -54,13 +58,16 @@ const BaseComponent = (setup, options = {}) =>
             const result = setup?.call(this, this.props);
             const content = typeof result === "function" ? result() : result;
             createFragment(content || [content], { parent: this.#shadow });
+        }
 
-            this.runHook("beforeMount");
+        #setMounted(isMounted) {
+            if (this.#mounted === isMounted) return false;
+            this.#mounted = isMounted;
+            return true;
         }
 
         connectedCallback() {
-            if (this.#mounted) return;
-            this.#mounted = true;
+            if (!this.#setMounted(true)) return;
             this.runHook("mount");
         }
 
@@ -68,7 +75,7 @@ const BaseComponent = (setup, options = {}) =>
             this.runHook("destroy");
             this._cleanup.forEach((cleanup) => cleanup());
             this._cleanup = [];
-            this.#mounted = false;
+            this.#setMounted(false);
         }
     };
 
