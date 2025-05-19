@@ -11,27 +11,26 @@ const signal = (initial) => {
     let val = initial;
     const subs = [];
     const getterSetter = (value) => {
+        // If it is a getter
         if (value === undefined) {
             if (activeEffect && !subs.includes(activeEffect)) {
                 subs.push(activeEffect);
-                if (activeEffect.subs) activeEffect.subs.add(getterSetter);
+                activeEffect.subs?.add(getterSetter);
             }
             return val;
         }
+
+        // If it is a setter
         const newValue = typeof value === "function" ? value(val) : value;
         if (!Object.is(newValue, val)) {
             val = newValue;
-            if (batchDepth > 0)
-                // Within a batch, add effects to the queue without executing them
-                for (let i = 0; i < subs.length; i++) effectsQueue.add(subs[i]);
-            else {
-                // Out of a batch, execute bills of exchange immediately
-                const s = subs.slice();
-                for (let i = 0; i < s.length; i++) s[i]();
-            }
+            batchDepth > 0
+                ? subs.forEach((effect) => effectsQueue.add(effect))
+                : subs.slice().forEach((effect) => effect());
         }
         return val;
     };
+
     getterSetter.subs = subs;
     return getterSetter;
 };
@@ -44,7 +43,6 @@ const signal = (initial) => {
  * @param {Function} fn - The function to execute when the effect is triggered.
  * @returns {Function} - A cleanup function to unsubscribe the effect from its dependencies.
  */
-
 const effect = (fn) => {
     const subs = new Set();
     let isRunning = false;
@@ -53,6 +51,7 @@ const effect = (fn) => {
         isRunning = true;
         const prev = activeEffect;
         activeEffect = reactive;
+
         try {
             fn();
         } finally {
@@ -62,10 +61,11 @@ const effect = (fn) => {
     };
     reactive.subs = subs;
     reactive();
+
     return () => {
         subs.forEach((signal) => {
             const index = signal.subs.indexOf(reactive);
-            if (index !== -1) signal.subs.splice(index, 1);
+            if (index > -1) signal.subs.splice(index, 1);
         });
         subs.clear();
     };
@@ -80,9 +80,9 @@ const effect = (fn) => {
  * @returns {Function} - A getter function with a `.dispose` method to clean up the computed value.
  */
 const computed = (fn) => {
-    const computedSignal = signal(fn());
-    effect(() => computedSignal(fn()));
-    return () => computedSignal();
+    const result = signal(fn());
+    effect(() => result(fn()));
+    return () => result();
 };
 
 /**
@@ -98,11 +98,10 @@ const batch = (fn) => {
     try {
         return fn();
     } finally {
-        batchDepth--;
-        if (batchDepth === 0) {
-            const effectsToRun = Array.from(effectsQueue);
+        if (--batchDepth === 0) {
+            const effects = Array.from(effectsQueue);
             effectsQueue.clear();
-            effectsToRun.forEach((eff) => eff());
+            for (let i = 0; i < effects.length; i++) effects[i]();
         }
     }
 };
