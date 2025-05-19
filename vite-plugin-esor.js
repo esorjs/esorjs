@@ -1,4 +1,5 @@
 import { createFilter } from "rollup/pluginutils";
+import { minify } from "terser";
 
 export default function esorPlugin(options = {}) {
   const filter = createFilter(options.include || ["**/*.js"], options.exclude);
