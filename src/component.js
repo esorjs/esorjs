@@ -72,9 +72,9 @@ const BaseComponent = (setup, options = {}) =>
         }
 
         disconnectedCallback() {
-            this.runHook("destroy");
             this._cleanup.forEach((cleanup) => cleanup());
             this._cleanup = [];
+            this.runHook("destroy");
             this.#setMounted(false);
         }
     };

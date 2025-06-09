@@ -1,5 +1,6 @@
 import { sanitizeHtml } from "../utils/parser.js";
 import { effect } from "../hooks/reactivity.js";
+// getCurrentContext will be removed from direct use here. componentInstance will be passed.
 import { createFragment, joinTruthy } from "../utils/dom.js";
 import { reconcile } from "./reconcile.js";
 
@@ -13,7 +14,7 @@ const MARKER = "\ufeff"; // Invisible marker for processing
  * @param {string|null} attr - The attribute name (or null for content).
  * @param {any} value - The value to assign.
  */
-const render = (node, attr, value) => {
+const render = (node, attr, value, componentInstance) => { // Added componentInstance
     if (attr) {
         node.removeAttribute(attr);
         if (attr === "ref") {
@@ -21,26 +22,58 @@ const render = (node, attr, value) => {
                 ? value(node)
                 : value && (value.current = node);
         } else if (
-            attr[0] == "o" &&
-            attr[1] == "n" &&
+            attr[0] === "o" && // Use strict equality
+            attr[1] === "n" &&
             typeof value === "function"
         ) {
             const eventName = attr.slice(2).toLowerCase();
-            node.addEventListener(eventName, value);
-            node._cleanup = () => node.removeEventListener(eventName, value);
-        } else if (attr === "style" && typeof value === "object") {
-            effect(() => Object.assign(node.style, value));
-        } else {
-            effect(() =>
-                setAttribute(
-                    node,
-                    attr,
-                    typeof value === "function" ? value() : value
-                )
-            );
+            // componentInstance is now passed as an argument
+            if (componentInstance && componentInstance.onEffect) {
+                componentInstance.onEffect(() => {
+                    node.addEventListener(eventName, value);
+                    return () => {
+                        node.removeEventListener(eventName, value);
+                    };
+                });
+            } else {
+                node.addEventListener(eventName, value);
+                node._cleanup = () => node.removeEventListener(eventName, value);
+            }
+        } else if (attr === "style") {
+            // componentInstance is now passed as an argument
+            if (typeof value === "function") { // Reactive style object from a signal
+                if (componentInstance && componentInstance.onEffect) {
+                    componentInstance.onEffect(() => effect(() => {
+                        Object.assign(node.style, value());
+                    }));
+                } else {
+                    effect(() => {
+                        Object.assign(node.style, value());
+                    });
+                }
+            } else if (typeof value === "object" && value !== null) { // Static style object
+                Object.assign(node.style, value);
+            } else { // Style as string
+                setAttribute(node, attr, value);
+            }
+        } else { // Other attributes
+            // componentInstance is now passed as an argument
+            if (typeof value === "function") { // Reactive attribute
+                if (componentInstance && componentInstance.onEffect) {
+                    componentInstance.onEffect(() => effect(() => {
+                        setAttribute(node, attr, value());
+                    }));
+                } else {
+                    effect(() => {
+                        setAttribute(node, attr, value());
+                    });
+                }
+            } else { // Static attribute
+                setAttribute(node, attr, value);
+            }
         }
         // Render node content
-    } else setContent(node, value);
+    } else setContent(node, value, componentInstance); // Pass componentInstance
 };
 
 /**
@@ -100,7 +133,7 @@ function replaceNodes(markerNode, newNodes) {
  * @param {Node} node - The node to update.
  * @param {any} value - The new value.
  */
-function setContent(node, value) {
+function setContent(node, value, componentInstance) { // Added componentInstance
     const updateContent = (val) => {
         if (val === true || val === false) val = "";
         if (Array.isArray(val)) reconcile(val, node);
@@ -110,9 +143,14 @@ function setContent(node, value) {
             replaceNodes(node, [textNode]);
         }
     };
-    typeof value === "function"
-        ? effect(() => updateContent(value()))
-        : updateContent(value);
+    // componentInstance is now passed as an argument
+    if (componentInstance && componentInstance.onEffect && typeof value === "function") {
+        componentInstance.onEffect(() => effect(() => updateContent(value())));
+    } else if (typeof value === "function") {
+        effect(() => updateContent(value()));
+    } else { // Non-reactive
+        updateContent(value);
+    }
 }
 
 /**
@@ -134,8 +172,9 @@ function insertFragment(fragment, parent, refNode = null) {
  *
  * @param {HTMLTemplateElement} template - The template to process.
  * @param {Array<any>} data - The values to replace in the template.
+ * @param {object} componentInstance - The component instance for context.
  */
-function processTemplate(template, data) {
+function processTemplate(template, data, componentInstance) { // Added componentInstance
     const nodes = [];
     const walker = document.createTreeWalker(template.content, 1 | 4);
     while (walker.nextNode()) nodes.push(walker.currentNode);
@@ -145,18 +184,18 @@ function processTemplate(template, data) {
         const n = nodes[i];
         if (n.nodeType === 1 && n.attributes.length) {
             for (const attr of Array.from(n.attributes))
-                if (attr.value === MARKER) render(n, attr.name, data[idx++]);
+                if (attr.value === MARKER) render(n, attr.name, data[idx++], componentInstance); // Pass componentInstance
         } else if (n.nodeType === 3 && n.nodeValue.includes(MARKER)) {
             if (n.nodeValue === MARKER) {
                 const comm = document.createComment("");
                 n.parentNode.replaceChild(comm, n);
-                render(comm, null, data[idx++]);
+                render(comm, null, data[idx++], componentInstance); // Pass componentInstance
             } else {
                 const tmp = createNodes(n.nodeValue.replaceAll(MARKER, "<!>"));
                 const children = Array.from(tmp.content.childNodes);
                 for (let j = 0; j < children.length; j++) {
                     const child = children[j];
-                    if (child.nodeType === 8) render(child, null, data[idx++]);
+                    if (child.nodeType === 8) render(child, null, data[idx++], componentInstance); // Pass componentInstance
                 }
                 n.parentNode.replaceChild(tmp.content, n);
             }
@@ -182,10 +221,14 @@ const createNodes = (html, opts) => {
  * Main function that creates DOM nodes from a template literal and interpolation data.
  *
  * @param {Array<string>} tpl - Template strings.
+ * @param {object} componentInstance - The component instance.
+ * @param {Array<string>} tpl - Template strings.
  * @param {...any} data - The data to interpolate.
  * @returns {Array<Node>} The created nodes.
  */
-const html = (tpl, ...data) => {
+// Renamed from 'html' to avoid conflict with user-facing 'this.html' or global 'html'
+// This function is intended for internal use by the mechanism that sets up `this.html`
+export function generateNodesFromTemplate(componentInstance, tpl, ...data) {
     const cachedTpl = templCache.get(tpl) || (templCache.set(tpl, tpl), tpl);
 
     if (!data.length) {
@@ -195,8 +238,9 @@ const html = (tpl, ...data) => {
     }
 
     const template = createNodes(cachedTpl.join(MARKER));
-    processTemplate(template, data);
+    processTemplate(template, data, componentInstance); // Pass componentInstance
     return [...template.content.childNodes];
-};
+}
 
-export { html };
+// The global 'html' export is removed. Users should use 'this.html' attached by 'createLifecycle'.
+// export { html }; // This line is removed.
