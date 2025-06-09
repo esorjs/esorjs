@@ -4,11 +4,11 @@ let ctx = null;
 
 // List of available hooks
 const LIFECYCLE_HOOKS = [
-    "beforeMount",
-    "mount",
-    "beforeUpdate",
-    "update",
-    "destroy",
+  "beforeMount",
+  "mount",
+  "beforeUpdate",
+  "update",
+  "destroy",
 ];
 
 /**
@@ -16,19 +16,19 @@ const LIFECYCLE_HOOKS = [
  * @param {object} host - The host of the component.
  */
 export const createLifecycle = (host) => {
-    ctx = host;
+  ctx = host;
 
-    host._lifecycles = Object.fromEntries(
-        LIFECYCLE_HOOKS.map((hook) => [hook, []])
-    );
+  host._lifecycles = Object.fromEntries(
+    LIFECYCLE_HOOKS.map((hook) => [hook, []])
+  );
 
-    host.runHook = (key) => {
-        const hooks = host._lifecycles?.[key];
-        if (!hooks?.length) return;
+  host.runHook = (key) => {
+    const hooks = host._lifecycles?.[key];
+    if (!hooks?.length) return;
 
-        for (let i = 0; i < hooks.length; i++)
-            queueMicrotask(() => hooks[i].call(host));
-    };
+    for (let i = 0; i < hooks.length; i++)
+      queueMicrotask(() => hooks[i].call(host));
+  };
 };
 
 /**
@@ -37,31 +37,40 @@ export const createLifecycle = (host) => {
  * @param {Function} fn - The function to add.
  */
 const addHook = (key, fn) => {
-    if (!ctx || !ctx._lifecycles) {
-        handleError("lifecycle", `Hook called outside ctx setup for "${key}"`);
-        return;
-    }
-    ctx._lifecycles[key].push(fn);
+  if (!ctx || !ctx._lifecycles) {
+    handleError("lifecycle", `Hook called outside ctx setup for "${key}"`);
+    return;
+  }
+  ctx._lifecycles[key].push(fn);
 };
 
 // Generate hook functions dynamically
 const exportedHooks = {};
 LIFECYCLE_HOOKS.forEach((hook) => {
-    // Convert names like “beforeMount” to “beforeMount” and “mount” to “onMount”.
-    const fnName = hook.startsWith("before")
-        ? hook
-        : `on${hook.charAt(0).toUpperCase() + hook.slice(1)}`;
-    exportedHooks[fnName] = (fn) => addHook(hook, fn);
+  // Convert names like “beforeMount” to “beforeMount” and “mount” to “onMount”.
+  const fnName = hook.startsWith("before")
+    ? hook
+    : `on${hook.charAt(0).toUpperCase() + hook.slice(1)}`;
+  exportedHooks[fnName] = (fn) => addHook(hook, fn);
 });
 
 export const { beforeMount, onMount, beforeUpdate, onUpdate, onDestroy } =
-    exportedHooks;
+  exportedHooks;
 
 // onEffect is a special case that handles cleaning
 export const onEffect = (fn) => {
-    const cleanup = fn();
-    if (typeof cleanup === "function") addHook("destroy", cleanup);
-    return () => {};
+  const cleanup = fn();
+  if (typeof cleanup === "function") addHook("destroy", cleanup);
+  return () => {};
 };
 
-export const getCurrentContext = () => ctx;
+/**
+ * Gets the current lifecycle context (component host).
+ * @returns {object|null} The current component context, or null if called outside of a component lifecycle.
+ * @warning This function exposes internal state and should be used carefully.
+ */
+export const getCurrentContext = () => {
+  if (!ctx)
+    console.warn("getCurrentContext called outside of component lifecycle");
+  return ctx;
+};
