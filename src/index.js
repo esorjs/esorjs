@@ -16,4 +16,5 @@ export {
     beforeMount,
     beforeUpdate,
     onEffect,
+    getCurrentContext
 } from "./lifecycle.js";

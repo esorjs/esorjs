@@ -21,8 +21,8 @@ const render = (node, attr, value) => {
                 ? value(node)
                 : value && (value.current = node);
         } else if (
-            attr[0] == "o" &&
-            attr[1] == "n" &&
+            attr[0] === "o" &&
+            attr[1] === "n" &&
             typeof value === "function"
         ) {
             const eventName = attr.slice(2).toLowerCase();

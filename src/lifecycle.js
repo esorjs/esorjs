@@ -63,3 +63,5 @@ export const onEffect = (fn) => {
     if (typeof cleanup === "function") addHook("destroy", cleanup);
     return () => {};
 };
+
+export const getCurrentContext = () => ctx;
