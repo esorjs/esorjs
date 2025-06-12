@@ -1,38 +1,37 @@
-let activeEffect = null;
-let batchDepth = 0;
-const effectsQueue = new Set();
+let current = null,
+  depth = 0,
+  queue = [];
 
 /**
- * Creates a reactive se al that notifies subscribers when its value changes.
+ * Creates a reactive signal that notifies subscribers when its value changes.
  * @param {any} initialValue - Initial value.
  * @returns {Function} - Getter/setter function to access and modify the value.
  */
-const signal = (initial) => {
-    let val = initial;
-    const subs = [];
-    const getterSetter = (value) => {
-        // If it is a getter
-        if (value === undefined) {
-            if (activeEffect && !subs.includes(activeEffect)) {
-                subs.push(activeEffect);
-                activeEffect.subs?.add(getterSetter);
-            }
-            return val;
-        }
+const signal = (v) => {
+  const subs = [];
 
-        // If it is a setter
-        const newValue = typeof value === "function" ? value(val) : value;
-        if (!Object.is(newValue, val)) {
-            val = newValue;
-            batchDepth > 0
-                ? subs.forEach((effect) => effectsQueue.add(effect))
-                : subs.slice().forEach((effect) => effect());
-        }
-        return val;
-    };
+  return (newV) => {
+    if (newV === undefined) {
+      // Getter - track dependency
+      return (
+        current &&
+          !subs.includes(current) &&
+          (subs.push(current), current.deps?.add(subs)),
+        v
+      );
+    }
 
-    getterSetter.subs = subs;
-    return getterSetter;
+    // Setter
+    const next = typeof newV === "function" ? newV(v) : newV;
+    if (v !== next) {
+      v = next;
+      if (depth > 0) {
+        for (let i = 0; i < subs.length; i++)
+          if (!queue.includes(subs[i])) queue.push(subs[i]);
+      } else for (let i = 0; i < subs.length; i++) subs[i]();
+    }
+    return v;
+  };
 };
 
 /**
@@ -44,31 +43,32 @@ const signal = (initial) => {
  * @returns {Function} - A cleanup function to unsubscribe the effect from its dependencies.
  */
 const effect = (fn) => {
-    const subs = new Set();
-    let isRunning = false;
-    const reactive = () => {
-        if (isRunning) return;
-        isRunning = true;
-        const prev = activeEffect;
-        activeEffect = reactive;
+  const deps = new Set();
+  const run = () => {
+    // Cleanup previous subscriptions
+    for (const subs of deps) {
+      const i = subs.indexOf(run);
+      if (i !== -1) subs.splice(i, 1);
+    }
 
-        try {
-            fn();
-        } finally {
-            activeEffect = prev;
-            isRunning = false;
-        }
-    };
-    reactive.subs = subs;
-    reactive();
+    deps.clear();
 
-    return () => {
-        subs.forEach((signal) => {
-            const index = signal.subs.indexOf(reactive);
-            if (index > -1) signal.subs.splice(index, 1);
-        });
-        subs.clear();
-    };
+    current = run;
+    current.deps = deps;
+    fn();
+    current = null;
+  };
+
+  run();
+
+  // Return cleanup function
+  return () => {
+    for (const subs of deps) {
+      const i = subs.indexOf(run);
+      if (i !== -1) subs.splice(i, 1);
+    }
+    deps.clear();
+  };
 };
 
 /**
@@ -80,9 +80,9 @@ const effect = (fn) => {
  * @returns {Function} - A getter function with a `.dispose` method to clean up the computed value.
  */
 const computed = (fn) => {
-    const result = signal(fn());
-    effect(() => result(fn()));
-    return () => result();
+  const s = signal();
+  effect(() => s(fn()));
+  return s;
 };
 
 /**
@@ -94,16 +94,16 @@ const computed = (fn) => {
  * @returns {any} - The result of the function `fn`.
  */
 const batch = (fn) => {
-    batchDepth++;
-    try {
-        return fn();
-    } finally {
-        if (--batchDepth === 0) {
-            const effects = Array.from(effectsQueue);
-            effectsQueue.clear();
-            for (let i = 0; i < effects.length; i++) effects[i]();
-        }
+  depth++;
+  try {
+    return fn();
+  } finally {
+    --depth;
+    if (depth === 0) {
+      const queued = queue.splice(0);
+      for (let i = 0; i < queued.length; i++) queued[i]();
     }
+  }
 };
 
 export { signal, effect, computed, batch };
