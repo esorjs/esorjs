@@ -3,14 +3,14 @@ import { signal } from "./hooks/reactivity.js";
 const NUM_REGEX = /^-?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/;
 
 /**
- * Parse an attribute value to an appropriate JS type.
+ * Parse an attribute value to an appropriate JavaScript type.
  *
- * Converts an attribute value to an appropriate JS type. If the value is null or undefined,
- * Returns an empty string. If the value is “true” or “false”, returns the corresponding boolean value.
- * corresponding boolean value. If the value can be parsed as a number (using a regular expression), * returns the corresponding boolean * value.
- If the value can be parsed as a number (using a regular * expression), it returns the number. If the value can be parsed as a JSON object or array (using a regular * expression), returns the number.
- * (using a regular expression and JSON.parse), returns the object or array. Otherwise, it returns the original value.
- * otherwise, it returns the original value.
+ * - If the value is null or undefined, returns an empty string.
+ * - If the value is "true" or "false", returns the corresponding boolean value.
+ * - If the value can be parsed as a number (using a regular expression), it returns the number.
+ * - If the value is a string that looks like a JSON object or array (starts with "{" or "["),
+ *   it attempts to parse it with `JSON.parse()` and returns the resulting object or array.
+ * - Otherwise, it returns the original value.
  *
  * @param {any} v - The value of the attribute to parse.
  * @returns {any} The parsed value.

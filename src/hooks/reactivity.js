@@ -46,12 +46,7 @@ const effect = (fn) => {
   const deps = new Set();
   const run = () => {
     // Cleanup previous subscriptions
-    for (const subs of deps) {
-      const i = subs.indexOf(run);
-      if (i !== -1) subs.splice(i, 1);
-    }
-
-    deps.clear();
+    cleanupDeps(run, deps);
 
     current = run;
     current.deps = deps;
@@ -63,12 +58,18 @@ const effect = (fn) => {
 
   // Return cleanup function
   return () => {
+    cleanupDeps(run, deps);
+  };
+};
+
+const cleanupDeps = (sub, deps) => {
+  if (deps) {
     for (const subs of deps) {
-      const i = subs.indexOf(run);
+      const i = subs.indexOf(sub);
       if (i !== -1) subs.splice(i, 1);
     }
     deps.clear();
-  };
+  }
 };
 
 /**

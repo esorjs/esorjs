@@ -66,8 +66,12 @@ export const onEffect = (fn) => {
 
 /**
  * Gets the current lifecycle context (component host).
- * @returns {object|null} The current component context, or null if called outside of a component lifecycle.
- * @warning This function exposes internal state and should be used carefully.
+ * This function exposes the internal module-scoped `ctx` variable, which holds
+ * the current component instance during its setup phase.
+ * @returns {object|null} The current component context, or null if called outside of a component's setup phase.
+ * @warning Use with caution. Accessing context outside of a component's synchronous
+ * setup phase or in asynchronous contexts can lead to unexpected behavior or retrieving
+ * a stale or incorrect context.
  */
 export const getCurrentContext = () => {
   if (!ctx)

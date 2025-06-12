@@ -20,11 +20,7 @@ const render = (node, attr, value) => {
             typeof value === "function"
                 ? value(node)
                 : value && (value.current = node);
-        } else if (
-            attr[0] === "o" &&
-            attr[1] === "n" &&
-            typeof value === "function"
-        ) {
+        } else if (attr.startsWith("on") && typeof value === "function") {
             const eventName = attr.slice(2).toLowerCase();
             node.addEventListener(eventName, value);
             node._cleanup = () => node.removeEventListener(eventName, value);
