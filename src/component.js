@@ -39,7 +39,7 @@ const REGEX_TAG_NAME = /^[a-z][a-z0-9]*-[a-z0-9-]*$/;
 const BaseComponent = (setup, options = {}) =>
     class extends HTMLElement {
         #shadow = this.attachShadow({ mode: options.shadowMode || "open" });
-        #mounted = false;
+        #mounted; 
         props = Object.create(null);
         _cleanup = [];
 
@@ -74,8 +74,7 @@ const BaseComponent = (setup, options = {}) =>
         disconnectedCallback() {
             this._cleanup.forEach((cleanup) => cleanup());
             this._cleanup = [];
-            this.runHook("destroy");
-            this.#setMounted(false);
+            if (this.#setMounted(false)) this.runHook("destroy");
         }
     };
 
