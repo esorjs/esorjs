@@ -1,46 +1,49 @@
 {
-  "name": "esor",
-  "version": "1.1.0",
-  "description": "JavaScript framework for dynamic Web applications based on Web Components",
-  "keywords": [
-    "web-components",
-    "esor",
-    "framework",
-    "customElements",
-    "shadowDOM",
-    "reactive",
-    "signals",
-    "typescript"
-  ],
-  "author": "Juan Cristobal",
-  "license": "MIT",
-  "homepage": "https://esorjs.github.io/",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/esorjs/esorjs"
-  },
-  "type": "module",
-  "main": "dist/esor.min.js",
-  "types": "esor.d.ts",
-  "files": [
-    "dist",
-    "esor.d.ts"
-  ],
-  "scripts": {
-    "build": "node ./scripts/build.js",
-    "watch": "node ./scripts/build.js --watch",
-    "type-check": "tsc --noEmit --allowJs --checkJs false"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.9.1",
-    "@playwright/test": "^1.51.1",
-    "@types/node": "^22.14.0",
-    "autoprefixer": "^10.4.20",
-    "brotli-size": "^4.0.0",
-    "esbuild": "^0.25.0",
-    "eslint": "^9.9.1",
-    "globals": "^15.9.0",
-    "rollup": "^4.39.0",
-    "typescript": "^5.0.0"
-  }
+    "name": "esor",
+    "version": "1.1.0",
+    "description": "JavaScript framework for dynamic Web applications based on Web Components",
+    "keywords": [
+        "web-components",
+        "esor",
+        "framework",
+        "customElements",
+        "shadowDOM",
+        "reactive",
+        "signals",
+        "typescript"
+    ],
+    "author": "Juan Cristobal",
+    "license": "MIT",
+    "homepage": "https://esorjs.github.io/",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/esorjs/esorjs"
+    },
+    "type": "module",
+    "main": "dist/esor.min.js",
+    "types": "esor.d.ts",
+    "files": [
+        "dist",
+        "esor.d.ts"
+    ],
+    "scripts": {
+        "build": "node ./scripts/build.js",
+        "watch": "node ./scripts/build.js --watch",
+        "type-check": "tsc --noEmit --allowJs --checkJs false",
+        "test": "npx playwright test",
+        "test:ui": "npx playwright test --ui",
+        "test:coverage": "npx playwright test --coverage"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.9.1",
+        "@playwright/test": "^1.51.1",
+        "@types/node": "^22.14.0",
+        "autoprefixer": "^10.4.20",
+        "brotli-size": "^4.0.0",
+        "esbuild": "^0.25.0",
+        "eslint": "^9.9.1",
+        "globals": "^15.9.0",
+        "rollup": "^4.39.0",
+        "typescript": "^5.0.0"
+    }
 }
