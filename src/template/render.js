@@ -22,20 +22,17 @@ const html = (strings, ...allValues) => {
         cached = { template, keyAttrIndex };
         cache.set(strings, cached);
     }
-
     const { template, keyAttrIndex } = cached;
     let key,
         otherValues = [...allValues];
-
     if (keyAttrIndex !== -1) {
         key = allValues[keyAttrIndex];
         otherValues.splice(keyAttrIndex, 1);
     }
-
     return { template, values: otherValues, _isTemplate: true, _key: key };
 };
 
-const renderValue = (parent, value) => {
+const renderValue = (parent, value, shouldClear = true) => {
     if (
         Array.isArray(value) &&
         value.length > 0 &&
@@ -44,17 +41,17 @@ const renderValue = (parent, value) => {
         reconcileArray(parent, value);
         return;
     }
-
-    while (parent.firstChild) parent.removeChild(parent.firstChild);
-
+    if (shouldClear && !(parent instanceof DocumentFragment)) {
+        while (parent.firstChild) parent.removeChild(parent.firstChild);
+    }
     if (value == null || value === false) return;
     if (value._isTemplate) renderTemplate(parent, value);
     else if (Array.isArray(value)) {
-        value.forEach((item) => {
+        for (let i = 0; i < value.length; i++) {
             const tempContainer = document.createDocumentFragment();
-            renderValue(tempContainer, item);
+            renderValue(tempContainer, value[i], false);
             parent.appendChild(tempContainer);
-        });
+        }
     } else if (value instanceof Node) parent.appendChild(value);
     else parent.appendChild(document.createTextNode(String(value)));
 };
@@ -70,7 +67,6 @@ const renderTemplate = (parent, { template, values }) => {
         ) {
             const parts = node.nodeValue.split(MARKER);
             const fragment = document.createDocumentFragment();
-
             for (let i = 0; i < parts.length; i++) {
                 if (i > 0) {
                     const value = values[valueIndex++];
@@ -78,18 +74,23 @@ const renderTemplate = (parent, { template, values }) => {
                         const placeholder = document.createElement("span");
                         fragment.appendChild(placeholder);
                         effect(() => renderValue(placeholder, value()));
-                    } else renderValue(fragment, value);
+                    } else {
+                        renderValue(fragment, value, false);
+                    }
                 }
-                parts[i] &&
+                if (parts[i])
                     fragment.appendChild(document.createTextNode(parts[i]));
             }
             node.parentNode.replaceChild(fragment, node);
         } else if (node.nodeType === Node.ELEMENT_NODE) {
-            const attrs = [...node.attributes].filter(
-                (attr) => attr.name !== "key" && attr.value === MARKER
-            );
-
-            attrs.forEach((attr) => {
+            const attrs = [];
+            for (let i = 0; i < node.attributes.length; i++) {
+                const attr = node.attributes[i];
+                if (attr.name !== "key" && attr.value === MARKER)
+                    attrs.push(attr);
+            }
+            for (let i = 0; i < attrs.length; i++) {
+                const attr = attrs[i];
                 const value = values[valueIndex++];
                 node.removeAttribute(attr.name);
 
@@ -132,20 +133,21 @@ const renderTemplate = (parent, { template, values }) => {
                                 val === true ? "" : val
                             );
                     };
-
                     typeof value === "function"
                         ? effect(() => setAttribute(value()))
                         : setAttribute(value);
                 }
-            });
-
+            }
             node.hasAttribute("key") && node.removeAttribute("key");
-
-            [...node.childNodes].forEach(processNode);
+            for (let i = 0; i < node.childNodes.length; i++)
+                processNode(node.childNodes[i]);
         }
     };
 
-    [...content.childNodes].forEach(processNode);
+    for (let i = 0; i < content.childNodes.length; i++) {
+        processNode(content.childNodes[i]);
+    }
+
     parent.appendChild(content);
 };
 
