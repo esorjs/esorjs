@@ -1,118 +1,115 @@
-import { createFragment } from "../utils/dom.js";
+import { renderTemplate } from "./render.js";
 
 /**
- * Reconciles DOM nodes by comparing new node groups with previous ones and updating the DOM accordingly.
+ * Reconciles the children of a parent DOM node with an array of new templates.
  *
- * This function efficiently updates the DOM structure to reflect changes in data by removing, reusing, or
- * inserting nodes as needed. It uses a marker node to determine where updates should occur and maintains
- * the order and integrity of node groups.
+ * This function updates the DOM by matching existing keyed nodes with new templates,
+ * applying necessary patches, and adding or removing nodes as needed. Existing nodes
+ * are reused and updated if they match a template by key, otherwise new nodes are created.
+ * Unused nodes are removed from the DOM.
  *
- * @param {Array<Node|Array<Node>>} newGroupsData - An array of new node groups, where each group can be a single node or an array of nodes.
- * @param {Node} markerNode - A marker node that acts as a reference point for DOM updates.
- *
- * If the new data is empty, all existing nodes are removed. Otherwise, nodes are updated based on a key
- * derived from the node's attributes or index. Nodes that are no longer present are removed, and new nodes
- * are inserted. The function also handles moving nodes to maintain the correct order.
+ * @param {Node} parent - The parent DOM node whose children will be reconciled.
+ * @param {Array} newTemplates - An array of template objects, each containing a `_key`
+ *     property for node matching, and other properties necessary for rendering.
  */
-export function reconcile(newGroupsData, markerNode) {
-    if (!markerNode?.parentNode) return;
-    const parent = markerNode.parentNode;
-
-    const prevGroups = markerNode._marker || [];
-    if (!newGroupsData?.length) {
-        for (const g of prevGroups)
-            g.nodes.forEach((n) => n?.parentNode?.removeChild(n));
-        markerNode._marker = [];
-        return;
+function reconcileArray(parent, newTemplates) {
+    const oldNodesMap = new Map();
+    for (const child of parent.children) {
+        if (child._key !== undefined) oldNodesMap.set(child._key, child);
     }
 
-    const prevMap = new Map(prevGroups.map((g) => [g.key, g]));
-    const newGroups = newGroupsData.map((nodes, i) => {
-        nodes = Array.isArray(nodes) ? nodes.filter(Boolean) : [nodes];
-        const key =
-            nodes.find((n) => n?.getAttribute?.("key"))?.getAttribute("key") ||
-            `__index_${i}`;
-        return { key, nodes };
-    });
-    const newMap = new Map(newGroups.map((g) => [g.key, g]));
+    const newNodes = [];
+    for (const template of newTemplates) {
+        const key = template._key;
+        let oldNode = oldNodesMap.get(key);
 
-    for (const g of prevGroups)
-        if (!newMap.has(g.key))
-            g.nodes.forEach((n) => n?.parentNode?.removeChild(n));
+        const tempContainer = document.createElement("div");
+        renderTemplate(tempContainer, template);
+        const newNode = tempContainer.firstElementChild;
 
-    let lastNode = markerNode;
-    for (const newGroup of newGroups) {
-        const prevGroup = prevMap.get(newGroup.key);
-
-        if (prevGroup) {
-            patchNodes(prevGroup.nodes, newGroup.nodes, parent);
-            if (prevGroup.nodes[0] !== lastNode.nextSibling) {
-                parent.insertBefore(
-                    createFragment(prevGroup.nodes),
-                    lastNode.nextSibling
-                );
-            }
-            newGroup.nodes = prevGroup.nodes;
-        } else {
-            parent.insertBefore(
-                createFragment(newGroup.nodes, { mark: true }),
-                lastNode.nextSibling
-            );
-        }
-        lastNode = newGroup.nodes[newGroup.nodes.length - 1] || lastNode;
-    }
-    markerNode._marker = newGroups;
-}
-
-/**
- * Patches the DOM nodes by comparing a list of previous nodes with a list of next nodes,
- * updating the parent DOM element accordingly. This function handles node addition, removal,
- * replacement, and updates for both element and text nodes.
- *
- * - If a node exists in the next list but not in the previous, it gets appended to the parent.
- * - If a node exists in the previous list but not in the next, it gets removed from the parent.
- * - If both nodes exist, but differ in type or tag, the previous node is replaced with the next.
- * - If both nodes are text nodes, their values are compared and updated if necessary.
- * - For element nodes, attributes are patched and child nodes are recursively patched.
- *
- * @param {Array<Node>} prevNodes - The array of previous nodes.
- * @param {Array<Node>} nextNodes - The array of nodes to update to.
- * @param {Node} parent - The parent node to which updates are applied.
- */
-function patchNodes(prevNodes, nextNodes, parent) {
-    for (let i = 0; i < Math.max(prevNodes.length, nextNodes.length); i++) {
-        const p = prevNodes[i],
-            n = nextNodes[i];
-        if (!p && n) parent.appendChild(n);
-        else if (p && !n) {
-            p._cleanup?.();
-            parent.removeChild(p);
-        } else if (p && n) {
-            if (p.nodeType !== n.nodeType || p.tagName !== n.tagName) {
-                parent.replaceChild(n, p);
-            } else if (p.nodeType === 3) {
-                if (p.nodeValue !== n.nodeValue) p.nodeValue = n.nodeValue;
-            } else if (p.nodeType === 1) {
-                patchAttributes(p, n);
-                patchNodes([...p.childNodes], [...n.childNodes], p);
-            }
+        if (oldNode && newNode) {
+            patchNode(oldNode, newNode);
+            newNodes.push(oldNode);
+            oldNodesMap.delete(key);
+        } else if (newNode) {
+            newNode._key = key;
+            newNodes.push(newNode);
         }
     }
+
+    for (const node of oldNodesMap.values()) {
+        node._cleanup?.();
+        parent.removeChild(node);
+    }
+
+    for (let i = 0; i < newNodes.length; i++) {
+        const expectedNode = newNodes[i];
+        const currentNode = parent.children[i];
+        if (currentNode !== expectedNode)
+            parent.insertBefore(expectedNode, currentNode || null);
+    }
 }
 
 /**
-  Patches the attributes of a DOM element more efficiently.
-  @param {Element} p - The element to patch.
-  @param {Element} next - The element from which to copy the attributes.
-*/
- function patchAttributes(p, next) {
-    const curr = {}, seen = new Set();
-    for (const { name: n, value: v } of p.attributes) curr[n] = v;
+ * Patches an existing DOM node with a new node.
+ *
+ * This function compares two nodes and updates the old node to match the new node.
+ * If both nodes are element nodes with the same tag name, it synchronizes their
+ * attributes and children. If they are text nodes, it updates the text content.
+ * If the nodes are of different types or have different tag names, the old node
+ * is replaced with a clone of the new node.
+ *
+ * @param {Node} oldNode - The node to be updated.
+ * @param {Node} newNode - The node with new properties to update the old node.
+ */
+function patchNode(oldNode, newNode) {
+    if (
+        oldNode.nodeType === Node.ELEMENT_NODE &&
+        newNode.nodeType === Node.ELEMENT_NODE
+    ) {
+        if (oldNode.tagName !== newNode.tagName) {
+            oldNode.replaceWith(newNode.cloneNode(true));
+            return;
+        }
 
-    for (const { name: n, value: v } of next.attributes) {
-        if (curr[n] !== v) p.setAttribute(n, v);
-        seen.add(n);
-    }
+        // Update attributes
+        const oldAttrs = new Map();
+        for (const { name, value } of oldNode.attributes)
+            oldAttrs.set(name, value);
 
-    for (const n in curr) if (!seen.has(n)) p.removeAttribute(n);
+        for (const { name, value } of newNode.attributes) {
+            if (name === "value" || name === "checked") {
+                if (oldNode[name] !== value) oldNode[name] = value;
+            } else if (oldNode.getAttribute(name) !== value) {
+                oldNode.setAttribute(name, value);
+            }
+            oldAttrs.delete(name);
+        }
+
+        for (const name of oldAttrs.keys()) oldNode.removeAttribute(name);
+
+        // Update children
+        const oldChildren = Array.from(oldNode.childNodes);
+        const newChildren = Array.from(newNode.childNodes);
+        const maxLen = Math.max(oldChildren.length, newChildren.length);
+
+        for (let i = 0; i < maxLen; i++) {
+            const oldChild = oldChildren[i];
+            const newChild = newChildren[i];
+
+            if (!oldChild) oldNode.appendChild(newChild.cloneNode(true));
+            else if (!newChild) {
+                oldChild._cleanup?.();
+                oldNode.removeChild(oldChild);
+            } else patchNode(oldChild, newChild);
+        }
+    } else if (
+        oldNode.nodeType === Node.TEXT_NODE &&
+        newNode.nodeType === Node.TEXT_NODE
+    ) {
+        if (oldNode.textContent !== newNode.textContent)
+            oldNode.textContent = newNode.textContent;
+    } else oldNode.replaceWith(newNode.cloneNode(true));
 }
+
+export { reconcileArray };

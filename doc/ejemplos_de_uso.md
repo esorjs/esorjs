@@ -43,7 +43,7 @@ component("todo-list", () => {
 
 component("my-range", () => {
     const value = signal(50);
-    
+
     return html`
         <div>
             <h2>My Range</h2>
@@ -52,7 +52,7 @@ component("my-range", () => {
                 type="range"
                 min="0"
                 max="100"
-                oninput="${(e) => value(e.target.value)}"
+                oninput=${(e) => value(e.target.value)}
             />
         </div>
     `;

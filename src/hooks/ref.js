@@ -6,5 +6,5 @@
  */
 export function ref(initialValue = null) {
     let current = initialValue;
-    return (v) => (v !== undefined ? (current = v) : current);
+    return (...v) => (v.length === 0 ? current : (current = v[0]));
 }

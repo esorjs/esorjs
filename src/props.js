@@ -1,45 +1,43 @@
-import { signal } from "./hooks/reactivity.js";
-
 const NUM_REGEX = /^-?\d+(?:\.\d+)?(?:e[+-]?\d+)?$/;
 
 /**
- * Parse an attribute value to an appropriate JavaScript type.
+ * Parses a given attribute value string into an appropriate JavaScript type.
  *
- * - If the value is null or undefined, returns an empty string.
- * - If the value is "true" or "false", returns the corresponding boolean value.
- * - If the value can be parsed as a number (using a regular expression), it returns the number.
- * - If the value is a string that looks like a JSON object or array (starts with "{" or "["),
- *   it attempts to parse it with `JSON.parse()` and returns the resulting object or array.
- * - Otherwise, it returns the original value.
+ * - If the value is `null` or `undefined`, returns an empty string.
+ * - If the value is the string "true", returns the boolean `true`.
+ * - If the value is the string "false", returns the boolean `false`.
+ * - If the value matches the numeric regular expression, returns a `Number`.
+ * - If the value is a string that looks like JSON (starts with '{' or '['),
+ *   attempts to parse it as JSON and returns the result. If parsing fails,
+ *   returns the original string.
+ * - Otherwise, returns the original string value.
  *
- * @param {any} v - The value of the attribute to parse.
- * @returns {any} The parsed value.
+ * @param {string} v - The attribute value to parse.
+ * @returns {any} - The parsed value in an appropriate JavaScript type.
  */
-export function parseAttributeValue(v) {
+export const parseAttributeValue = (v) => {
     if (v == null) return "";
     if (v === "true") return true;
     if (v === "false") return false;
     if (NUM_REGEX.test(v)) return Number(v);
-    if (typeof v === "string" && (v[0] === "{" || v[0] === "["))
+    if (typeof v === "string" && (v[0] === "{" || v[0] === "[")) {
         try {
             return JSON.parse(v);
         } catch {}
-
+    }
     return v;
-}
+};
 
 /**
  * Initializes properties from attributes of a host element.
  *
- * Iterates over the attributes of the host element and sets the corresponding property in the host's `props` object to a reactive signal.
- * The value of the signal is obtained by parsing the attribute value with the `parseAttributeValue` function.
- *
- * @param {HTMLElement} host - The element whose attributes are to be used to initialize its properties.
+ * @param {HTMLElement} h - Element host
  */
-export function initializeProps(host) {
-    for (const attr of host.attributes) {
-        const { name, value } = attr;
-        if (name.startsWith("on") || name.startsWith("ref")) continue;
-        host.props[name] = signal(parseAttributeValue(value));
+export const initializeProps = (h) => {
+    h._functionProps && Object.assign(h.props, h._functionProps);
+    for (const { name: n, value: v } of h.attributes) {
+        if (n.startsWith("on") || n.startsWith("ref")) continue;
+        if (v === "function" && h._functionProps?.[n]) continue;
+        h.props[n] = parseAttributeValue(v);
     }
-}
+};

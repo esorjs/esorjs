@@ -1,5 +1,5 @@
 export { component } from "./component.js";
-export { html } from "./template/html.js";
+export { html } from "./template/render.js";
 
 // Reactivity
 export { signal, computed, effect, batch } from "./hooks/reactivity.js";
@@ -16,5 +16,5 @@ export {
     beforeMount,
     beforeUpdate,
     onEffect,
-    getCurrentContext
+    getCurrentContext,
 } from "./lifecycle.js";

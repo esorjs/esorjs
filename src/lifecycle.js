@@ -1,71 +1,65 @@
-import { handleError } from "./utils/error.js";
-
 let ctx = null;
-
-// List of available hooks
 const LIFECYCLE_HOOKS = [
-  "beforeMount",
-  "mount",
-  "beforeUpdate",
-  "update",
-  "destroy",
+    "beforeMount",
+    "mount",
+    "beforeUpdate",
+    "update",
+    "destroy",
 ];
 
 /**
- * Create a life cycle system for the component.
- * @param {object} host - The host of the component.
+ * Initializes the lifecycle system for a component.
+ * @param {object} h - The host component to which the lifecycle is attached.
+ * Sets up the lifecycle hooks for the component and defines a method to run
+ * these hooks.
  */
-export const createLifecycle = (host) => {
-  ctx = host;
-
-  host._lifecycles = Object.fromEntries(
-    LIFECYCLE_HOOKS.map((hook) => [hook, []])
-  );
-
-  host.runHook = (key) => {
-    const hooks = host._lifecycles?.[key];
-    if (!hooks?.length) return;
-
-    for (let i = 0; i < hooks.length; i++)
-      queueMicrotask(() => hooks[i].call(host));
-  };
+export const createLifecycle = (h) => {
+    ctx = h;
+    h._lifecycles = Object.fromEntries(LIFECYCLE_HOOKS.map((k) => [k, []]));
+    h.runHook = (k) => {
+        const hooks = h._lifecycles?.[k];
+        hooks?.length &&
+            hooks.forEach((fn) => queueMicrotask(() => fn.call(h)));
+    };
 };
 
 /**
- * Adds a hook to the lifecycle system.
- * @param {string} key - The lifecycle key.
- * @param {Function} fn - The function to add.
+ * Adds a lifecycle hook function to the current component's lifecycle system.
+ *
+ * @param {string} k - The name of the lifecycle hook.
+ * @param {Function} fn - The function to add as a hook.
+ * @throws {Error} If called outside of a component's setup phase.
  */
-const addHook = (key, fn) => {
-  if (!ctx || !ctx._lifecycles) {
-    handleError("lifecycle", `Hook called outside ctx setup for "${key}"`);
-    return;
-  }
-  ctx._lifecycles[key].push(fn);
+const addHook = (k, fn) => {
+    if (!ctx?._lifecycles)
+        throw new Error(`[Esor] Hook called outside ctx setup for "${k}"`);
+
+    ctx._lifecycles[k].push(fn);
 };
 
-// Generate hook functions dynamically
 const exportedHooks = {};
-LIFECYCLE_HOOKS.forEach((hook) => {
-  // Convert names like “beforeMount” to “beforeMount” and “mount” to “onMount”.
-  const fnName = hook.startsWith("before")
-    ? hook
-    : `on${hook.charAt(0).toUpperCase() + hook.slice(1)}`;
-  exportedHooks[fnName] = (fn) => addHook(hook, fn);
+LIFECYCLE_HOOKS.forEach((h) => {
+    const fnName = h.startsWith("before")
+        ? h
+        : `on${h[0].toUpperCase()}${h.slice(1)}`;
+    exportedHooks[fnName] = (fn) => addHook(h, fn);
 });
 
-export const { beforeMount, onMount, beforeUpdate, onUpdate, onDestroy } =
-  exportedHooks;
-
-// onEffect is a special case that handles cleaning
+/**
+ * Registers an effect function that may return a cleanup function.
+ * The cleanup function, if provided, will be registered to run during the "destroy" lifecycle phase.
+ *
+ * @param {Function} fn - The effect function to execute. It may optionally return a cleanup function.
+ * @returns {Function} A no-op function.
+ */
 export const onEffect = (fn) => {
-  const cleanup = fn();
-  if (typeof cleanup === "function") addHook("destroy", cleanup);
-  return () => {};
+    const cleanup = fn();
+    typeof cleanup === "function" && addHook("destroy", cleanup);
+    return () => {};
 };
 
 /**
- * Gets the current lifecycle context (component host).
+ * Retrieves the current lifecycle context (component host).
  * This function exposes the internal module-scoped `ctx` variable, which holds
  * the current component instance during its setup phase.
  * @returns {object|null} The current component context, or null if called outside of a component's setup phase.
@@ -74,7 +68,10 @@ export const onEffect = (fn) => {
  * a stale or incorrect context.
  */
 export const getCurrentContext = () => {
-  if (!ctx)
-    console.warn("getCurrentContext called outside of component lifecycle");
-  return ctx;
+    !ctx &&
+        console.warn("getCurrentContext called outside of component lifecycle");
+    return ctx;
 };
+
+export const { beforeMount, onMount, beforeUpdate, onUpdate, onDestroy } =
+    exportedHooks;

@@ -1,110 +1,94 @@
-let current = null,
-  depth = 0,
-  queue = [];
+let currentEffect = null;
+let batchDepth = 0;
 
 /**
- * Creates a reactive signal that notifies subscribers when its value changes.
- * @param {any} initialValue - Initial value.
- * @returns {Function} - Getter/setter function to access and modify the value.
+ * Creates a reactive signal that notifies its subscribers when its value changes.
+ *
+ * Signals are reactive values that can be used to track state changes in your application.
+ * When the signal's value is changed, all subscribed functions will be called with the new value.
+ * Subscribers can be added either by calling the signal with no arguments (which will add the
+ * current effect to the subscribers) or by calling the signal with a new value.
+ *
+ * @param {*} initialValue - The initial value of the signal.
+ * @returns {Function} A function that can be used to get or set the signal's value.
  */
-const signal = (v) => {
-  const subs = [];
+const signal = (initialValue) => {
+    let value = initialValue;
+    const subscribers = new Set();
 
-  return (newV) => {
-    if (newV === undefined) {
-      // Getter - track dependency
-      return (
-        current &&
-          !subs.includes(current) &&
-          (subs.push(current), current.deps?.add(subs)),
-        v
-      );
-    }
+    return (...args) => {
+        if (args.length === 0) {
+            currentEffect && subscribers.add(currentEffect);
+            return value;
+        }
 
-    // Setter
-    const next = typeof newV === "function" ? newV(v) : newV;
-    if (v !== next) {
-      v = next;
-      if (depth > 0) {
-        for (let i = 0; i < subs.length; i++)
-          if (!queue.includes(subs[i])) queue.push(subs[i]);
-      } else for (let i = 0; i < subs.length; i++) subs[i]();
-    }
-    return v;
-  };
+        const newValue = args[0];
+        if (value !== newValue) {
+            value = newValue;
+            if (batchDepth === 0) {
+                for (const fn of subscribers) fn();
+            }
+        }
+
+        return value;
+    };
 };
 
 /**
- * Creates a reactive effect that runs automatically when its dependencies change.
- * The effect function `fn` is executed immediately and re-executed whenever any
- * of the reactive signals it depends on are updated.
+ * Creates an effect that runs a function and remembers it for future calls.
  *
- * @param {Function} fn - The function to execute when the effect is triggered.
- * @returns {Function} - A cleanup function to unsubscribe the effect from its dependencies.
+ * Effects are functions that run a computation and remember themselves for
+ * future calls. When an effect is called, it sets itself as the current effect
+ * and then calls the computation. After the computation is done, it sets the
+ * current effect back to null.
+ *
+ * @param {Function} fn - The computation to run.
+ * @returns {Function} The effect function.
  */
 const effect = (fn) => {
-  const deps = new Set();
-  const run = () => {
-    // Cleanup previous subscriptions
-    cleanupDeps(run, deps);
-
-    current = run;
-    current.deps = deps;
-    fn();
-    current = null;
-  };
-
-  run();
-
-  // Return cleanup function
-  return () => {
-    cleanupDeps(run, deps);
-  };
-};
-
-const cleanupDeps = (sub, deps) => {
-  if (deps) {
-    for (const subs of deps) {
-      const i = subs.indexOf(sub);
-      if (i !== -1) subs.splice(i, 1);
-    }
-    deps.clear();
-  }
+    const execute = () => {
+        currentEffect = execute;
+        fn();
+        currentEffect = null;
+    };
+    execute();
+    return execute;
 };
 
 /**
- * Creates a computed reactive value that is derived from other signals.
- * The computed value is the result of calling the `fn` function whenever any of
- * the reactive signals it depends on are updated.
+ * Creates a computed signal that automatically updates based on its dependencies.
  *
- * @param {Function} fn - The function to execute when the computed value is accessed.
- * @returns {Function} - A getter function with a `.dispose` method to clean up the computed value.
+ * A computed signal is a derived value that updates whenever the signals it depends
+ * on change. When the provided function is executed, it tracks the dependencies,
+ * and any changes to those dependencies will cause the computed function to re-run,
+ * updating the computed signal's value.
+ *
+ * @param {Function} fn - The function that returns the computed value, which may depend
+ * on other reactive signals.
+ * @returns {Function} A signal function that returns the current computed value.
  */
+
 const computed = (fn) => {
-  const s = signal();
-  effect(() => s(fn()));
-  return s;
+    const result = signal(undefined);
+    effect(() => result(fn()));
+    return result;
 };
 
 /**
- * Batches multiple signal updates into a single update cycle.
- * This defers the execution of effects until all batched updates are complete,
- * optimizing rendering performance.
+ * Runs a function without scheduling subscriber updates until all batches are complete.
  *
- * @param {Function} fn - The function containing updates to batch.
- * @returns {any} - The result of the function `fn`.
+ * Batching is useful when you need to update multiple reactive signals
+ * without notifying their subscribers until all updates are complete.
+ * This can be useful for performance optimization.
+ *
+ * @param {Function} fn - The function to run in batch mode.
+ * @returns {*} The result of the function.
  */
 const batch = (fn) => {
-  depth++;
-  try {
-    return fn();
-  } finally {
-    --depth;
-    if (depth === 0) {
-      const queued = queue.splice(0);
-      for (let i = 0; i < queued.length; i++) queued[i]();
-    }
-  }
+    batchDepth++;
+    const result = fn();
+    --batchDepth;
+    return result;
 };
 
 export { signal, effect, computed, batch };
