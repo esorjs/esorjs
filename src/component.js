@@ -51,7 +51,7 @@ const BaseComponent = (setup, options = {}) =>
         #initializeComponent() {
             createLifecycle(this);
             initializeProps(this);
-            options.gobalStyles &&
+            options.globalStyles &&
                 s().forEach((s) => this.#shadow.appendChild(s.cloneNode(true)));
             const template = setup?.call(this, this.props);
             renderTemplate(this.#shadow, template);
