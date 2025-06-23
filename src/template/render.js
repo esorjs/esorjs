@@ -125,7 +125,9 @@ const renderTemplate = (parent, { template, values }) => {
                 if (attr.name === "ref") {
                     typeof value === "function"
                         ? value(node)
-                        : (value.current = node);
+                        : value &&
+                          typeof value === "object" &&
+                          (value.current = node);
                 } else if (
                     attr.name === "style" &&
                     typeof value === "object" &&
