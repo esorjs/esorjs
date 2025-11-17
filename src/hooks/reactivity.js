@@ -1,5 +1,6 @@
 let currentEffect = null;
 let batchDepth = 0;
+let pendingEffects = null;
 
 /**
  * Creates a reactive signal that notifies its subscribers when its value changes.
@@ -17,7 +18,7 @@ const signal = (initialValue) => {
     const subscribers = new Set();
 
     return (...args) => {
-        if (args.length === 0) {
+        if (!args.length) {
             currentEffect && subscribers.add(currentEffect);
             return value;
         }
@@ -25,7 +26,12 @@ const signal = (initialValue) => {
         const newValue = args[0];
         if (value !== newValue) {
             value = newValue;
-            if (batchDepth === 0) for (const fn of subscribers) fn();
+            if (batchDepth) {
+                pendingEffects ||= new Set();
+                for (const fn of subscribers) pendingEffects.add(fn);
+            } else {
+                for (const fn of subscribers) fn();
+            }
         }
 
         return value;
@@ -85,7 +91,11 @@ const computed = (fn) => {
 const batch = (fn) => {
     batchDepth++;
     const result = fn();
-    --batchDepth;
+    if (!--batchDepth && pendingEffects) {
+        const effects = pendingEffects;
+        pendingEffects = null;
+        for (const fn of effects) fn();
+    }
     return result;
 };
 

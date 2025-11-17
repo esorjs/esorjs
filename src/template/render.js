@@ -49,27 +49,35 @@ const html = (strings, ...allValues) => {
  * @param {boolean} [shouldClear=true] - Whether to clear the parent before rendering.
  */
 const renderValue = (parent, value, shouldClear = true) => {
-    if (
-        Array.isArray(value) &&
-        value.length > 0 &&
-        value[0]?._key !== undefined
-    ) {
-        reconcileArray(parent, value);
-        return;
-    }
-    if (shouldClear && !(parent instanceof DocumentFragment)) {
-        while (parent.firstChild) parent.removeChild(parent.firstChild);
-    }
-    if (value == null || value === false) return;
-    if (value._isTemplate) renderTemplate(parent, value);
-    else if (Array.isArray(value)) {
+    if (Array.isArray(value)) {
+        if (value.length && value[0]?._key !== undefined) {
+            reconcileArray(parent, value);
+            return;
+        }
+        if (shouldClear && !(parent instanceof DocumentFragment)) {
+            parent.textContent = "";
+        }
         for (let i = 0; i < value.length; i++) {
             const tempContainer = document.createDocumentFragment();
             renderValue(tempContainer, value[i], false);
             parent.appendChild(tempContainer);
         }
-    } else if (value instanceof Node) parent.appendChild(value);
-    else parent.appendChild(document.createTextNode(String(value)));
+        return;
+    }
+
+    if (shouldClear && !(parent instanceof DocumentFragment)) {
+        parent.textContent = "";
+    }
+
+    if (value == null || value === false) return;
+
+    if (value._isTemplate) {
+        renderTemplate(parent, value);
+    } else if (value instanceof Node) {
+        parent.appendChild(value);
+    } else {
+        parent.appendChild(document.createTextNode(String(value)));
+    }
 };
 
 /**
@@ -120,54 +128,45 @@ const renderTemplate = (parent, { template, values }) => {
             for (let i = 0; i < attrs.length; i++) {
                 const attr = attrs[i];
                 const value = values[valueIndex++];
-                node.removeAttribute(attr.name);
+                const name = attr.name;
+                node.removeAttribute(name);
 
-                if (attr.name === "ref") {
+                if (name === "ref") {
                     typeof value === "function"
                         ? value(node)
-                        : value &&
-                          typeof value === "object" &&
-                          (value.current = node);
-                } else if (
-                    attr.name === "style" &&
-                    typeof value === "object" &&
-                    value !== null
-                ) {
+                        : value && (value.current = node);
+                } else if (name === "style" && value && typeof value === "object") {
                     typeof value === "function"
                         ? effect(() => Object.assign(node.style, value()))
                         : Object.assign(node.style, value);
-                } else if (
-                    typeof value === "function" &&
-                    node.tagName?.includes("-")
-                ) {
-                    node._functionProps ||= {};
-                    node._functionProps[attr.name] = value;
-                } else if (attr.name.startsWith("on")) {
-                    const eventName = attr.name.slice(2).toLowerCase();
+                } else if (name[0] === "o" && name[1] === "n") {
+                    const eventName = name.slice(2).toLowerCase();
                     if (typeof value === "function") {
-                        if (node._cleanup)
-                            node._cleanup(), (node._cleanup = null);
+                        node._cleanup?.();
                         node.addEventListener(eventName, value);
                         node._cleanup = () =>
                             node.removeEventListener(eventName, value);
                     }
+                } else if (typeof value === "function") {
+                    if (node.tagName?.includes("-")) {
+                        node._functionProps ||= {};
+                        node._functionProps[name] = value;
+                    } else {
+                        effect(() => {
+                            const val = value();
+                            name === "value" || name === "checked" || name === "selected"
+                                ? (node[name] = val)
+                                : val == null || val === false
+                                ? node.removeAttribute(name)
+                                : node.setAttribute(name, val === true ? "" : val);
+                        });
+                    }
                 } else {
-                    const setAttribute = (val) => {
-                        if (
-                            ["value", "checked", "selected"].includes(attr.name)
-                        )
-                            node[attr.name] = val;
-                        else if (val == null || val === false)
-                            node.removeAttribute(attr.name);
-                        else
-                            node.setAttribute(
-                                attr.name,
-                                val === true ? "" : val
-                            );
-                    };
-                    typeof value === "function"
-                        ? effect(() => setAttribute(value()))
-                        : setAttribute(value);
+                    name === "value" || name === "checked" || name === "selected"
+                        ? (node[name] = value)
+                        : value == null || value === false
+                        ? void 0
+                        : node.setAttribute(name, value === true ? "" : value);
                 }
             }
             node.hasAttribute("key") && node.removeAttribute("key");
