@@ -18,8 +18,14 @@ export const createLifecycle = (h) => {
     h._lifecycles = Object.fromEntries(LIFECYCLE_HOOKS.map((k) => [k, []]));
     h.runHook = (k) => {
         const hooks = h._lifecycles?.[k];
-        hooks?.length &&
-            hooks.forEach((fn) => queueMicrotask(() => fn.call(h)));
+        if (!hooks?.length) return;
+
+        // Batch ejecutar hooks en un solo microtask
+        queueMicrotask(() => {
+            for (let i = 0; i < hooks.length; i++) {
+                hooks[i].call(h);
+            }
+        });
     };
 };
 

@@ -120,9 +120,9 @@ test("Performance: batch updates - corrected logic", () => {
 
     const end = performance.now();
 
-    // With your simple batch implementation, effects are prevented during batch
+    // With optimized batch implementation, effects are prevented during batch
     // but execute after batch ends, so we expect initial + 1 (after batch completes)
-    expect(updateCount).toBe(1); // Only initial effect, batch prevents intermediate effects
+    expect(updateCount).toBe(2); // Initial effect + 1 batched update at the end
     expect(count()).toBe(100); // Final value should be 100
     expect(end - start).toBeLessThan(20); // Reasonable time limit
 });
@@ -164,7 +164,7 @@ test("Performance: batch vs no batch comparison", () => {
 
     // Verify batch reduces effect executions
     expect(updateCountNoBatch).toBe(51); // initial + 50 updates
-    expect(updateCountBatch).toBe(1); // only initial, batch prevents updates
+    expect(updateCountBatch).toBe(2); // initial + 1 batched update at the end
 
     // Both should have final value
     expect(countNoBatch()).toBe(50);

@@ -1,5 +1,13 @@
 import { renderTemplate } from "./render.js";
 
+// Pool de contenedores para reducir garbage collection
+const containerPool = [];
+const getContainer = () => containerPool.pop() || document.createElement("div");
+const releaseContainer = (c) => {
+    c.textContent = "";
+    containerPool.length < 10 && containerPool.push(c);
+};
+
 /**
  * Reconciles the children of a parent DOM node with an array of new templates.
  *
@@ -14,16 +22,19 @@ import { renderTemplate } from "./render.js";
  */
 function reconcileArray(parent, newTemplates) {
     const oldNodesMap = new Map();
-    for (const child of parent.children) {
-        if (child._key !== undefined) oldNodesMap.set(child._key, child);
+    const children = parent.children;
+    for (let i = 0; i < children.length; i++) {
+        const child = children[i];
+        child._key !== undefined && oldNodesMap.set(child._key, child);
     }
 
     const newNodes = [];
-    for (const template of newTemplates) {
+    for (let i = 0; i < newTemplates.length; i++) {
+        const template = newTemplates[i];
         const key = template._key;
-        let oldNode = oldNodesMap.get(key);
+        const oldNode = oldNodesMap.get(key);
 
-        const tempContainer = document.createElement("div");
+        const tempContainer = getContainer();
         renderTemplate(tempContainer, template);
         const newNode = tempContainer.firstElementChild;
 
@@ -35,6 +46,8 @@ function reconcileArray(parent, newTemplates) {
             newNode._key = key;
             newNodes.push(newNode);
         }
+
+        releaseContainer(tempContainer);
     }
 
     for (const node of oldNodesMap.values()) {
@@ -44,8 +57,8 @@ function reconcileArray(parent, newTemplates) {
 
     for (let i = 0; i < newNodes.length; i++) {
         const expectedNode = newNodes[i];
-        const currentNode = parent.children[i];
-        if (currentNode !== expectedNode)
+        const currentNode = children[i];
+        currentNode !== expectedNode &&
             parent.insertBefore(expectedNode, currentNode || null);
     }
 }
@@ -63,53 +76,67 @@ function reconcileArray(parent, newTemplates) {
  * @param {Node} newNode - The node with new properties to update the old node.
  */
 function patchNode(oldNode, newNode) {
-    if (
-        oldNode.nodeType === Node.ELEMENT_NODE &&
-        newNode.nodeType === Node.ELEMENT_NODE
-    ) {
+    const oldType = oldNode.nodeType;
+    const newType = newNode.nodeType;
+
+    if (oldType === 1 && newType === 1) {
+        // Element nodes
         if (oldNode.tagName !== newNode.tagName) {
             oldNode.replaceWith(newNode.cloneNode(true));
             return;
         }
 
         // Update attributes
-        const oldAttrs = new Map();
-        for (const { name, value } of oldNode.attributes)
-            oldAttrs.set(name, value);
+        const oldAttrs = oldNode.attributes;
+        const newAttrs = newNode.attributes;
+        const toRemove = [];
 
-        for (const { name, value } of newNode.attributes) {
-            if (name === "value" || name === "checked") {
-                if (oldNode[name] !== value) oldNode[name] = value;
-            } else if (oldNode.getAttribute(name) !== value) {
-                oldNode.setAttribute(name, value);
-            }
-            oldAttrs.delete(name);
+        for (let i = oldAttrs.length - 1; i >= 0; i--) {
+            const { name } = oldAttrs[i];
+            !newNode.hasAttribute(name) && toRemove.push(name);
         }
 
-        for (const name of oldAttrs.keys()) oldNode.removeAttribute(name);
+        for (let i = 0; i < newAttrs.length; i++) {
+            const { name, value } = newAttrs[i];
+            if (name === "value" || name === "checked") {
+                oldNode[name] !== value && (oldNode[name] = value);
+            } else {
+                oldNode.getAttribute(name) !== value &&
+                    oldNode.setAttribute(name, value);
+            }
+        }
+
+        for (let i = 0; i < toRemove.length; i++) {
+            oldNode.removeAttribute(toRemove[i]);
+        }
 
         // Update children
-        const oldChildren = Array.from(oldNode.childNodes);
-        const newChildren = Array.from(newNode.childNodes);
-        const maxLen = Math.max(oldChildren.length, newChildren.length);
+        const oldChildren = oldNode.childNodes;
+        const newChildren = newNode.childNodes;
+        const oldLen = oldChildren.length;
+        const newLen = newChildren.length;
+        const maxLen = Math.max(oldLen, newLen);
 
         for (let i = 0; i < maxLen; i++) {
             const oldChild = oldChildren[i];
             const newChild = newChildren[i];
 
-            if (!oldChild) oldNode.appendChild(newChild.cloneNode(true));
-            else if (!newChild) {
+            if (!oldChild) {
+                oldNode.appendChild(newChild.cloneNode(true));
+            } else if (!newChild) {
                 oldChild._cleanup?.();
                 oldNode.removeChild(oldChild);
-            } else patchNode(oldChild, newChild);
+            } else {
+                patchNode(oldChild, newChild);
+            }
         }
-    } else if (
-        oldNode.nodeType === Node.TEXT_NODE &&
-        newNode.nodeType === Node.TEXT_NODE
-    ) {
-        if (oldNode.textContent !== newNode.textContent)
-            oldNode.textContent = newNode.textContent;
-    } else oldNode.replaceWith(newNode.cloneNode(true));
+    } else if (oldType === 3 && newType === 3) {
+        // Text nodes
+        oldNode.textContent !== newNode.textContent &&
+            (oldNode.textContent = newNode.textContent);
+    } else {
+        oldNode.replaceWith(newNode.cloneNode(true));
+    }
 }
 
 export { reconcileArray };
