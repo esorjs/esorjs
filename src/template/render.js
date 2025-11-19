@@ -35,7 +35,7 @@ const html = (strings, ...allValues) => {
     }
 
     // Detect if template has reactive values for caching optimization
-    const hasReactiveValues = otherValues.some(v => typeof v === 'function');
+    const hasReactiveValues = otherValues.some(v => v?._isSignal || typeof v === 'function');
     const isStatic = otherValues.length === 0;
 
     return {
@@ -149,7 +149,12 @@ const renderTemplate = (parent, { template, values, _isStatic, _hasReactiveValue
             for (let i = 0; i < parts.length; i++) {
                 if (i > 0) {
                     const value = values[valueIndex++];
-                    if (typeof value === "function") {
+                    // Auto-detect signals and make them reactive
+                    if (value?._isSignal) {
+                        const placeholder = document.createElement("span");
+                        fragment.appendChild(placeholder);
+                        effect(() => renderValue(placeholder, value()));
+                    } else if (typeof value === "function") {
                         const placeholder = document.createElement("span");
                         fragment.appendChild(placeholder);
                         effect(() => renderValue(placeholder, value()));
@@ -189,6 +194,21 @@ const renderTemplate = (parent, { template, values, _isStatic, _hasReactiveValue
                         node.addEventListener(eventName, value);
                         node._cleanup = () =>
                             node.removeEventListener(eventName, value);
+                    }
+                } else if (value?._isSignal) {
+                    // Auto-detect signals for attributes
+                    if (node.tagName?.includes("-")) {
+                        node._functionProps ||= {};
+                        node._functionProps[name] = value;
+                    } else {
+                        effect(() => {
+                            const val = value();
+                            name === "value" || name === "checked" || name === "selected"
+                                ? (node[name] = val)
+                                : val == null || val === false
+                                ? node.removeAttribute(name)
+                                : node.setAttribute(name, val === true ? "" : val);
+                        });
                     }
                 } else if (typeof value === "function") {
                     if (node.tagName?.includes("-")) {

@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ESOR v1.2.0 - API Simplificada</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+            margin: 2rem;
+            color: #222;
+            background: #f9f9f9;
+        }
+
+        header {
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            margin: 0.25rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: white;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button.secondary {
+            background: #6c757d;
+        }
+
+        button.secondary:hover {
+            background: #545b62;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-weight: 500;
+            margin-left: 1rem;
+        }
+
+        .status.even {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status.odd {
+            background: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>ESOR v1.2.0 - API Simplificada 🎉</h1>
+        <p>Ahora puedes usar signals <strong>directamente</strong> sin wrappers!</p>
+    </header>
+
+    <div class="card">
+        <h2>✨ Nueva API Simplificada</h2>
+        <my-counter></my-counter>
+    </div>
+
+    <div class="card">
+        <h2>📊 Múltiples Signals</h2>
+        <multi-signal-demo></multi-signal-demo>
+    </div>
+
+    <script type="module">
+        import { component, html, signal, computed } from "./dist/esor.min.js";
+
+        // ============================================
+        // Ejemplo 1: Counter Simple
+        // ============================================
+        component("my-counter", () => {
+            const count = signal(0);
+
+            // ✨ NUEVA API: Pasar signals directamente (sin funciones wrapper)
+            return html`
+                <div>
+                    <h3>Counter Simple</h3>
+                    <p style="font-size: 2rem; margin: 1rem 0;">
+                        Count: <strong>${count}</strong>
+                    </p>
+                    <div>
+                        <button onclick=${() => count(count() + 1)}>+1</button>
+                        <button onclick=${() => count(count() - 1)}>-1</button>
+                        <button onclick=${() => count(count() + 10)}>+10</button>
+                        <button class="secondary" onclick=${() => count(0)}>Reset</button>
+                    </div>
+                </div>
+            `;
+        });
+
+        // ============================================
+        // Ejemplo 2: Múltiples Signals y Computed
+        // ============================================
+        component("multi-signal-demo", () => {
+            const count = signal(0);
+            const multiplier = signal(2);
+
+            // Computed values se actualizan automáticamente
+            const result = computed(() => count() * multiplier());
+            const isEven = computed(() => count() % 2 === 0);
+
+            return html`
+                <div>
+                    <h3>Demo con Computed</h3>
+
+                    <p>
+                        Count: <strong>${count}</strong>
+                        <span class="status ${isEven ? 'even' : 'odd'}">
+                            ${isEven ? '✓ Par' : '✗ Impar'}
+                        </span>
+                    </p>
+
+                    <p>Multiplier: <strong>${multiplier}</strong></p>
+
+                    <p style="font-size: 1.5rem; margin: 1rem 0;">
+                        Result: <strong>${result}</strong>
+                        <small style="color: #666;">(${count} × ${multiplier})</small>
+                    </p>
+
+                    <div style="margin-top: 1rem;">
+                        <strong>Count:</strong>
+                        <button onclick=${() => count(count() + 1)}>+1</button>
+                        <button onclick=${() => count(count() - 1)}>-1</button>
+                        <button class="secondary" onclick=${() => count(0)}>Reset</button>
+                    </div>
+
+                    <div style="margin-top: 0.5rem;">
+                        <strong>Multiplier:</strong>
+                        <button onclick=${() => multiplier(2)}>×2</button>
+                        <button onclick=${() => multiplier(3)}>×3</button>
+                        <button onclick=${() => multiplier(5)}>×5</button>
+                        <button onclick=${() => multiplier(10)}>×10</button>
+                    </div>
+                </div>
+            `;
+        });
+    </script>
+
+    <div class="card" style="margin-top: 2rem; background: #e7f3ff;">
+        <h3>📝 Comparación de APIs</h3>
+
+        <h4>❌ API Antigua (v1.1.4) - Verbose</h4>
+        <pre style="background: white; padding: 1rem; border-radius: 4px; overflow: auto;"><code>const count = signal(0);
+
+html\`
+  &lt;p&gt;Count: \${() => count()}&lt;/p&gt;  // ❌ Requiere wrapper
+\`;</code></pre>
+
+        <h4>✅ API Nueva (v1.2.0) - Simple</h4>
+        <pre style="background: white; padding: 1rem; border-radius: 4px; overflow: auto;"><code>const count = signal(0);
+
+html\`
+  &lt;p&gt;Count: \${count}&lt;/p&gt;  // ✅ Directo y limpio!
+\`;</code></pre>
+
+        <p><strong>Nota:</strong> La API antigua sigue funcionando (100% retrocompatible). Puedes usar ambas en el mismo proyecto.</p>
+    </div>
+
+    <div class="card" style="margin-top: 1rem; background: #fff3cd;">
+        <h3>⚡ Auto-batching Automático</h3>
+        <p>Múltiples updates se agrupan automáticamente en un solo render:</p>
+        <pre style="background: white; padding: 1rem; border-radius: 4px; overflow: auto;"><code>// Estos 3 updates solo causan 1 render
+count(count() + 1);
+multiplier(5);
+name("Updated");
+
+// ⚡ Auto-batching en acción!</code></pre>
+    </div>
+
+</body>
+</html>
