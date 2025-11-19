@@ -1,6 +1,6 @@
 {
     "name": "esor",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "Lightweight JavaScript framework for dynamic Web applications based on Web Components with auto-batching and optimized reconciliation",
     "keywords": [
         "web-components",
@@ -21,7 +21,7 @@
     "homepage": "https://esorjs.github.io/",
     "repository": {
         "type": "git",
-        "url": "https://github.com/esorjs/esorjs"
+        "url": "git+https://github.com/esorjs/esorjs.git"
     },
     "type": "module",
     "sideEffects": false,
