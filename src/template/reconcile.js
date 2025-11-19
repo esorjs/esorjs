@@ -7,9 +7,7 @@ const getContainer = () => containerPool.pop() || document.createElement("div");
 const releaseContainer = (c) => {
     c.textContent = "";
     c.innerHTML = "";  // Limpieza más completa
-    if (containerPool.length < MAX_POOL_SIZE) {
-        containerPool.push(c);
-    }
+    if (containerPool.length < MAX_POOL_SIZE) containerPool.push(c);
 };
 
 /**
@@ -29,9 +27,7 @@ function reconcileArray(parent, newTemplates) {
     const children = parent.children;
     for (let i = 0; i < children.length; i++) {
         const child = children[i];
-        if (child._key !== undefined) {
-            oldNodesMap.set(child._key, child);
-        }
+        if (child._key !== undefined) oldNodesMap.set(child._key, child);
     }
 
     const newNodes = [];
@@ -64,9 +60,7 @@ function reconcileArray(parent, newTemplates) {
     for (let i = 0; i < newNodes.length; i++) {
         const expectedNode = newNodes[i];
         const currentNode = children[i];
-        if (currentNode !== expectedNode) {
-            parent.insertBefore(expectedNode, currentNode || null);
-        }
+        if (currentNode !== expectedNode) parent.insertBefore(expectedNode, currentNode || null);
     }
 }
 
@@ -100,14 +94,11 @@ function patchChildren(parent, oldChildren, newChildren) {
             const oldChild = oldChildren[i];
             const newChild = newChildren[i];
 
-            if (!oldChild) {
-                parent.appendChild(newChild.cloneNode(true));
-            } else if (!newChild) {
+            if (!oldChild) parent.appendChild(newChild.cloneNode(true));
+            else if (!newChild) {
                 oldChild._cleanup?.();
                 parent.removeChild(oldChild);
-            } else {
-                patchNode(oldChild, newChild);
-            }
+            } else patchNode(oldChild, newChild);
         }
         return;
     }
@@ -197,21 +188,15 @@ function patchNode(oldNode, newNode) {
 
         for (let i = oldAttrs.length - 1; i >= 0; i--) {
             const { name } = oldAttrs[i];
-            if (!newNode.hasAttribute(name)) {
-                toRemove.push(name);
-            }
+            if (!newNode.hasAttribute(name)) toRemove.push(name);
         }
 
         for (let i = 0; i < newAttrs.length; i++) {
             const { name, value } = newAttrs[i];
             if (name === "value" || name === "checked") {
-                if (oldNode[name] !== value) {
-                    oldNode[name] = value;
-                }
+                if (oldNode[name] !== value) oldNode[name] = value;
             } else {
-                if (oldNode.getAttribute(name) !== value) {
-                    oldNode.setAttribute(name, value);
-                }
+                if (oldNode.getAttribute(name) !== value) oldNode.setAttribute(name, value);
             }
         }
 
@@ -223,9 +208,7 @@ function patchNode(oldNode, newNode) {
         patchChildren(oldNode, oldNode.childNodes, newNode.childNodes);
     } else if (oldType === 3 && newType === 3) {
         // Text nodes
-        if (oldNode.textContent !== newNode.textContent) {
-            oldNode.textContent = newNode.textContent;
-        }
+        if (oldNode.textContent !== newNode.textContent) oldNode.textContent = newNode.textContent;
     } else {
         oldNode.replaceWith(newNode.cloneNode(true));
     }
