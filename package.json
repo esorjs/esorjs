@@ -1,6 +1,6 @@
 {
     "name": "esor",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "description": "Lightweight JavaScript framework for dynamic Web applications based on Web Components with auto-batching and optimized reconciliation",
     "keywords": [
         "web-components",
