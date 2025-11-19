@@ -2,10 +2,12 @@ import { renderTemplate } from "./render.js";
 
 // Pool de contenedores para reducir garbage collection
 const containerPool = [];
+const MAX_POOL_SIZE = 50;  // Incrementado de 10 a 50 para mejor eficiencia
 const getContainer = () => containerPool.pop() || document.createElement("div");
 const releaseContainer = (c) => {
     c.textContent = "";
-    containerPool.length < 10 && containerPool.push(c);
+    c.innerHTML = "";  // Limpieza más completa
+    containerPool.length < MAX_POOL_SIZE && containerPool.push(c);
 };
 
 /**
@@ -64,6 +66,103 @@ function reconcileArray(parent, newTemplates) {
 }
 
 /**
+ * Checks if two nodes are of the same type for reconciliation purposes.
+ * @param {Node} a - First node
+ * @param {Node} b - Second node
+ * @returns {boolean} True if nodes can be patched
+ * @private
+ */
+function isSameNodeType(a, b) {
+    return a.nodeType === b.nodeType &&
+           (a.nodeType !== 1 || a.tagName === b.tagName);
+}
+
+/**
+ * Optimized children patching with heuristics for common cases.
+ * @param {Node} parent - Parent DOM node
+ * @param {NodeList} oldChildren - Current children
+ * @param {NodeList} newChildren - New children to reconcile
+ * @private
+ */
+function patchChildren(parent, oldChildren, newChildren) {
+    const oldLen = oldChildren.length;
+    const newLen = newChildren.length;
+
+    // Heuristic 1: Fast path for small lists (most common case)
+    if (oldLen < 20 && newLen < 20) {
+        const maxLen = Math.max(oldLen, newLen);
+        for (let i = 0; i < maxLen; i++) {
+            const oldChild = oldChildren[i];
+            const newChild = newChildren[i];
+
+            if (!oldChild) {
+                parent.appendChild(newChild.cloneNode(true));
+            } else if (!newChild) {
+                oldChild._cleanup?.();
+                parent.removeChild(oldChild);
+            } else {
+                patchNode(oldChild, newChild);
+            }
+        }
+        return;
+    }
+
+    // Heuristic 2: Same start - skip identical prefix
+    let startIdx = 0;
+    while (startIdx < oldLen && startIdx < newLen &&
+           isSameNodeType(oldChildren[startIdx], newChildren[startIdx])) {
+        patchNode(oldChildren[startIdx], newChildren[startIdx]);
+        startIdx++;
+    }
+
+    // Heuristic 3: Same end - skip identical suffix
+    let oldEndIdx = oldLen - 1;
+    let newEndIdx = newLen - 1;
+    while (oldEndIdx >= startIdx && newEndIdx >= startIdx &&
+           isSameNodeType(oldChildren[oldEndIdx], newChildren[newEndIdx])) {
+        patchNode(oldChildren[oldEndIdx], newChildren[newEndIdx]);
+        oldEndIdx--;
+        newEndIdx--;
+    }
+
+    // Heuristic 4: Only additions at the end
+    if (startIdx > oldEndIdx && startIdx <= newEndIdx) {
+        const ref = newChildren[newEndIdx + 1]?.nextSibling || null;
+        for (let i = startIdx; i <= newEndIdx; i++) {
+            parent.insertBefore(newChildren[i].cloneNode(true), ref);
+        }
+        return;
+    }
+
+    // Heuristic 5: Only removals from the end
+    if (startIdx > newEndIdx) {
+        for (let i = startIdx; i <= oldEndIdx; i++) {
+            oldChildren[i]._cleanup?.();
+            parent.removeChild(oldChildren[i]);
+        }
+        return;
+    }
+
+    // Remaining complex cases: use general patching
+    const maxLen = Math.max(oldEndIdx - startIdx + 1, newEndIdx - startIdx + 1);
+    for (let i = 0; i < maxLen; i++) {
+        const oldIdx = startIdx + i;
+        const newIdx = startIdx + i;
+        const oldChild = oldIdx <= oldEndIdx ? oldChildren[oldIdx] : null;
+        const newChild = newIdx <= newEndIdx ? newChildren[newIdx] : null;
+
+        if (!oldChild && newChild) {
+            parent.insertBefore(newChild.cloneNode(true), oldChildren[oldIdx] || null);
+        } else if (oldChild && !newChild) {
+            oldChild._cleanup?.();
+            parent.removeChild(oldChild);
+        } else if (oldChild && newChild) {
+            patchNode(oldChild, newChild);
+        }
+    }
+}
+
+/**
  * Patches an existing DOM node with a new node.
  *
  * This function compares two nodes and updates the old node to match the new node.
@@ -110,26 +209,8 @@ function patchNode(oldNode, newNode) {
             oldNode.removeAttribute(toRemove[i]);
         }
 
-        // Update children
-        const oldChildren = oldNode.childNodes;
-        const newChildren = newNode.childNodes;
-        const oldLen = oldChildren.length;
-        const newLen = newChildren.length;
-        const maxLen = Math.max(oldLen, newLen);
-
-        for (let i = 0; i < maxLen; i++) {
-            const oldChild = oldChildren[i];
-            const newChild = newChildren[i];
-
-            if (!oldChild) {
-                oldNode.appendChild(newChild.cloneNode(true));
-            } else if (!newChild) {
-                oldChild._cleanup?.();
-                oldNode.removeChild(oldChild);
-            } else {
-                patchNode(oldChild, newChild);
-            }
-        }
+        // Update children using optimized patching
+        patchChildren(oldNode, oldNode.childNodes, newNode.childNodes);
     } else if (oldType === 3 && newType === 3) {
         // Text nodes
         oldNode.textContent !== newNode.textContent &&
