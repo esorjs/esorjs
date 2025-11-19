@@ -149,15 +149,12 @@ const renderTemplate = (parent, { template, values, _isStatic, _hasReactiveValue
             for (let i = 0; i < parts.length; i++) {
                 if (i > 0) {
                     const value = values[valueIndex++];
-                    // Auto-detect signals and make them reactive
-                    if (value?._isSignal) {
+                    // Auto-detect signals and functions for reactivity
+                    if (value?._isSignal || typeof value === "function") {
                         const placeholder = document.createElement("span");
                         fragment.appendChild(placeholder);
-                        effect(() => renderValue(placeholder, value()));
-                    } else if (typeof value === "function") {
-                        const placeholder = document.createElement("span");
-                        fragment.appendChild(placeholder);
-                        effect(() => renderValue(placeholder, value()));
+                        const getFn = value._isSignal ? () => value() : value;
+                        effect(() => renderValue(placeholder, getFn()));
                     } else {
                         renderValue(fragment, value, false);
                     }
@@ -195,28 +192,15 @@ const renderTemplate = (parent, { template, values, _isStatic, _hasReactiveValue
                         node._cleanup = () =>
                             node.removeEventListener(eventName, value);
                     }
-                } else if (value?._isSignal) {
-                    // Auto-detect signals for attributes
+                } else if (value?._isSignal || typeof value === "function") {
+                    // Auto-detect signals and functions for attributes
                     if (node.tagName?.includes("-")) {
                         node._functionProps ||= {};
                         node._functionProps[name] = value;
                     } else {
+                        const getFn = value._isSignal ? () => value() : value;
                         effect(() => {
-                            const val = value();
-                            name === "value" || name === "checked" || name === "selected"
-                                ? (node[name] = val)
-                                : val == null || val === false
-                                ? node.removeAttribute(name)
-                                : node.setAttribute(name, val === true ? "" : val);
-                        });
-                    }
-                } else if (typeof value === "function") {
-                    if (node.tagName?.includes("-")) {
-                        node._functionProps ||= {};
-                        node._functionProps[name] = value;
-                    } else {
-                        effect(() => {
-                            const val = value();
+                            const val = getFn();
                             name === "value" || name === "checked" || name === "selected"
                                 ? (node[name] = val)
                                 : val == null || val === false
