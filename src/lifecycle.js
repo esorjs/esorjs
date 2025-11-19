@@ -60,7 +60,9 @@ LIFECYCLE_HOOKS.forEach((h) => {
  */
 export const onEffect = (fn) => {
     const cleanup = fn();
-    typeof cleanup === "function" && addHook("destroy", cleanup);
+    if (typeof cleanup === "function") {
+        addHook("destroy", cleanup);
+    }
     return () => {};
 };
 
@@ -74,8 +76,9 @@ export const onEffect = (fn) => {
  * a stale or incorrect context.
  */
 export const getCurrentContext = () => {
-    !ctx &&
+    if (!ctx) {
         console.warn("getCurrentContext called outside of component lifecycle");
+    }
     return ctx;
 };
 

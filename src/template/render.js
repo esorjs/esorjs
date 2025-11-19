@@ -177,13 +177,17 @@ const renderTemplate = (parent, { template, values, _isStatic, _hasReactiveValue
                 node.removeAttribute(name);
 
                 if (name === "ref") {
-                    typeof value === "function"
-                        ? value(node)
-                        : value && (value.current = node);
+                    if (typeof value === "function") {
+                        value(node);
+                    } else if (value) {
+                        value.current = node;
+                    }
                 } else if (name === "style" && value && typeof value === "object") {
-                    typeof value === "function"
-                        ? effect(() => Object.assign(node.style, value()))
-                        : Object.assign(node.style, value);
+                    if (typeof value === "function") {
+                        effect(() => Object.assign(node.style, value()));
+                    } else {
+                        Object.assign(node.style, value);
+                    }
                 } else if (name[0] === "o" && name[1] === "n") {
                     const eventName = name.slice(2).toLowerCase();
                     if (typeof value === "function") {
@@ -201,22 +205,26 @@ const renderTemplate = (parent, { template, values, _isStatic, _hasReactiveValue
                         const getFn = value._isSignal ? () => value() : value;
                         effect(() => {
                             const val = getFn();
-                            name === "value" || name === "checked" || name === "selected"
-                                ? (node[name] = val)
-                                : val == null || val === false
-                                ? node.removeAttribute(name)
-                                : node.setAttribute(name, val === true ? "" : val);
+                            if (name === "value" || name === "checked" || name === "selected") {
+                                node[name] = val;
+                            } else if (val == null || val === false) {
+                                node.removeAttribute(name);
+                            } else {
+                                node.setAttribute(name, val === true ? "" : val);
+                            }
                         });
                     }
                 } else {
-                    name === "value" || name === "checked" || name === "selected"
-                        ? (node[name] = value)
-                        : value == null || value === false
-                        ? void 0
-                        : node.setAttribute(name, value === true ? "" : value);
+                    if (name === "value" || name === "checked" || name === "selected") {
+                        node[name] = value;
+                    } else if (value != null && value !== false) {
+                        node.setAttribute(name, value === true ? "" : value);
+                    }
                 }
             }
-            node.hasAttribute("key") && node.removeAttribute("key");
+            if (node.hasAttribute("key")) {
+                node.removeAttribute("key");
+            }
             for (let i = 0; i < node.childNodes.length; i++)
                 processNode(node.childNodes[i]);
         }
