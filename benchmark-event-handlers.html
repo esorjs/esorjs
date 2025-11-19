@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ESOR - Benchmark de Event Handlers</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+            margin: 2rem;
+            max-width: 1400px;
+        }
+        .controls {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 1rem;
+            border: 2px solid #333;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .controls button {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            margin: 0.25rem;
+            cursor: pointer;
+        }
+        .controls .primary {
+            background: #0a7;
+            color: white;
+            border: none;
+            font-weight: bold;
+        }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .metric {
+            padding: 1rem;
+            background: #f0f0f0;
+            border-radius: 6px;
+            border-left: 4px solid #0a7;
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #0a7;
+        }
+        .metric-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .method-card {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        .method-card h3 {
+            margin-top: 0;
+        }
+        .method-card.active {
+            border-color: #0a7;
+            background: #f0fff4;
+        }
+        .items-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+        .item-buttons button {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.85rem;
+            margin: 0 0.125rem;
+        }
+        .performance-winner {
+            color: #0a7;
+            font-weight: bold;
+        }
+        .performance-loser {
+            color: #c33;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏁 Benchmark: Event Handlers en ESOR</h1>
+    <p>Compara la performance de diferentes estrategias para manejar eventos en listas grandes.</p>
+
+    <div class="controls">
+        <div>
+            <label>Items: <input type="number" id="itemCount" value="100" min="10" max="5000" step="10"></label>
+            <button class="primary" id="runBenchmark">🚀 Ejecutar Benchmark</button>
+            <button id="clearAll">🗑️ Limpiar Todo</button>
+        </div>
+        <div id="globalMetrics" class="metrics"></div>
+    </div>
+
+    <div class="comparison">
+        <div class="method-card" id="card-inline">
+            <h3>❌ Arrow Inline</h3>
+            <p><small>Crea N funciones (una por botón)</small></p>
+            <inline-handlers-demo></inline-handlers-demo>
+        </div>
+
+        <div class="method-card" id="card-defined">
+            <h3>⚠️ Handlers Definidos</h3>
+            <p><small>Crea N funciones (reutilizables)</small></p>
+            <defined-handlers-demo></defined-handlers-demo>
+        </div>
+
+        <div class="method-card" id="card-delegation">
+            <h3>✅ Event Delegation</h3>
+            <p><small>1 listener para toda la lista</small></p>
+            <delegation-demo></delegation-demo>
+        </div>
+    </div>
+
+    <script type="module">
+        import { component, html, signal } from "./dist/esor.min.js";
+
+        // Utilidades de benchmark
+        const formatTime = (ms) => ms < 1 ? `${(ms * 1000).toFixed(0)}μs` : `${ms.toFixed(2)}ms`;
+        const formatMemory = (bytes) => `${(bytes / 1024).toFixed(2)} KB`;
+
+        // ============================================
+        // ❌ MÉTODO 1: Arrow Functions Inline
+        // ============================================
+        component("inline-handlers-demo", () => {
+            const items = signal([]);
+            const metrics = signal({ time: 0, listeners: 0 });
+
+            window.inlineDemo = {
+                init: (count) => {
+                    const start = performance.now();
+
+                    const newItems = Array.from({ length: count }, (_, i) => ({
+                        id: i,
+                        text: `Item ${i + 1}`,
+                        count: 0
+                    }));
+
+                    items(newItems);
+
+                    requestAnimationFrame(() => {
+                        const time = performance.now() - start;
+                        metrics({ time, listeners: count * 3 });
+                    });
+                }
+            };
+
+            return html`
+                <div>
+                    <div class="metric">
+                        <div class="metric-value">${() => metrics().listeners}</div>
+                        <div class="metric-label">Event Listeners</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${() => formatTime(metrics().time)}</div>
+                        <div class="metric-label">Init Time</div>
+                    </div>
+                    <div class="items-container">
+                        ${() => items().map(item => html`
+                            <div class="item">
+                                <span><strong>${item.text}:</strong> ${item.count}</span>
+                                <div class="item-buttons">
+                                    <button onclick=${() => {
+                                        const newItems = items().map(i =>
+                                            i.id === item.id ? { ...i, count: i.count + 1 } : i
+                                        );
+                                        items(newItems);
+                                    }}>+</button>
+                                    <button onclick=${() => {
+                                        const newItems = items().map(i =>
+                                            i.id === item.id ? { ...i, count: i.count - 1 } : i
+                                        );
+                                        items(newItems);
+                                    }}>-</button>
+                                    <button onclick=${() => {
+                                        const newItems = items().map(i =>
+                                            i.id === item.id ? { ...i, count: 0 } : i
+                                        );
+                                        items(newItems);
+                                    }}>0</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        });
+
+        // ============================================
+        // ⚠️ MÉTODO 2: Handlers Definidos
+        // ============================================
+        component("defined-handlers-demo", () => {
+            const items = signal([]);
+            const metrics = signal({ time: 0, listeners: 0 });
+
+            window.definedDemo = {
+                init: (count) => {
+                    const start = performance.now();
+
+                    const newItems = Array.from({ length: count }, (_, i) => ({
+                        id: i,
+                        text: `Item ${i + 1}`,
+                        count: 0
+                    }));
+
+                    items(newItems);
+
+                    requestAnimationFrame(() => {
+                        const time = performance.now() - start;
+                        metrics({ time, listeners: count * 3 });
+                    });
+                }
+            };
+
+            const updateItem = (id, updater) => {
+                const newItems = items().map(item =>
+                    item.id === id ? { ...item, ...updater(item) } : item
+                );
+                items(newItems);
+            };
+
+            const createHandlers = (itemId) => ({
+                inc: () => updateItem(itemId, item => ({ count: item.count + 1 })),
+                dec: () => updateItem(itemId, item => ({ count: item.count - 1 })),
+                reset: () => updateItem(itemId, item => ({ count: 0 }))
+            });
+
+            return html`
+                <div>
+                    <div class="metric">
+                        <div class="metric-value">${() => metrics().listeners}</div>
+                        <div class="metric-label">Event Listeners</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${() => formatTime(metrics().time)}</div>
+                        <div class="metric-label">Init Time</div>
+                    </div>
+                    <div class="items-container">
+                        ${() => items().map(item => {
+                            const handlers = createHandlers(item.id);
+                            return html`
+                                <div class="item">
+                                    <span><strong>${item.text}:</strong> ${item.count}</span>
+                                    <div class="item-buttons">
+                                        <button onclick=${handlers.inc}>+</button>
+                                        <button onclick=${handlers.dec}>-</button>
+                                        <button onclick=${handlers.reset}>0</button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        });
+
+        // ============================================
+        // ✅ MÉTODO 3: Event Delegation
+        // ============================================
+        component("delegation-demo", () => {
+            const items = signal([]);
+            const metrics = signal({ time: 0, listeners: 1 });
+
+            window.delegationDemo = {
+                init: (count) => {
+                    const start = performance.now();
+
+                    const newItems = Array.from({ length: count }, (_, i) => ({
+                        id: i,
+                        text: `Item ${i + 1}`,
+                        count: 0
+                    }));
+
+                    items(newItems);
+
+                    requestAnimationFrame(() => {
+                        const time = performance.now() - start;
+                        metrics({ time, listeners: 1 });
+                    });
+                }
+            };
+
+            const handleClick = (e) => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+
+                const action = btn.dataset.action;
+                const id = parseInt(btn.dataset.id);
+
+                const newItems = items().map(item => {
+                    if (item.id !== id) return item;
+
+                    switch(action) {
+                        case 'inc': return { ...item, count: item.count + 1 };
+                        case 'dec': return { ...item, count: item.count - 1 };
+                        case 'reset': return { ...item, count: 0 };
+                        default: return item;
+                    }
+                });
+
+                items(newItems);
+            };
+
+            return html`
+                <div>
+                    <div class="metric">
+                        <div class="metric-value performance-winner">${() => metrics().listeners}</div>
+                        <div class="metric-label">Event Listeners</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${() => formatTime(metrics().time)}</div>
+                        <div class="metric-label">Init Time</div>
+                    </div>
+                    <div class="items-container" onclick=${handleClick}>
+                        ${() => items().map(item => html`
+                            <div class="item">
+                                <span><strong>${item.text}:</strong> ${item.count}</span>
+                                <div class="item-buttons">
+                                    <button data-action="inc" data-id="${item.id}">+</button>
+                                    <button data-action="dec" data-id="${item.id}">-</button>
+                                    <button data-action="reset" data-id="${item.id}">0</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        });
+
+        // ============================================
+        // Controles del Benchmark
+        // ============================================
+        document.getElementById('runBenchmark').addEventListener('click', () => {
+            const count = parseInt(document.getElementById('itemCount').value);
+
+            // Resaltar método ganador
+            document.getElementById('card-delegation').classList.add('active');
+            document.getElementById('card-inline').classList.remove('active');
+            document.getElementById('card-defined').classList.remove('active');
+
+            // Ejecutar benchmarks
+            if (window.inlineDemo) window.inlineDemo.init(count);
+            if (window.definedDemo) window.definedDemo.init(count);
+            if (window.delegationDemo) window.delegationDemo.init(count);
+
+            // Calcular métricas globales
+            setTimeout(() => {
+                const totalListeners = (count * 3 * 2) + 1; // inline + defined + delegation
+                const avgMemoryPerListener = 150; // bytes aproximados
+                const totalMemory = totalListeners * avgMemoryPerListener;
+
+                document.getElementById('globalMetrics').innerHTML = `
+                    <div class="metric">
+                        <div class="metric-value">${count}</div>
+                        <div class="metric-label">Items por lista</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${count * 3}</div>
+                        <div class="metric-label">Botones por método</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${totalListeners}</div>
+                        <div class="metric-label">Total Listeners</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">${formatMemory(totalMemory)}</div>
+                        <div class="metric-label">Memoria Estimada</div>
+                    </div>
+                `;
+            }, 100);
+        });
+
+        document.getElementById('clearAll').addEventListener('click', () => {
+            if (window.inlineDemo) window.inlineDemo.init(0);
+            if (window.definedDemo) window.definedDemo.init(0);
+            if (window.delegationDemo) window.delegationDemo.init(0);
+
+            document.getElementById('card-delegation').classList.remove('active');
+            document.getElementById('card-inline').classList.remove('active');
+            document.getElementById('card-defined').classList.remove('active');
+        });
+
+        // Ejecutar con 100 items por defecto
+        setTimeout(() => document.getElementById('runBenchmark').click(), 500);
+    </script>
+</body>
+</html>

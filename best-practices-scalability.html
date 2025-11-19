@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ESOR - Mejores Prácticas para Escalabilidad</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+            margin: 2rem;
+            max-width: 1200px;
+            color: #222;
+        }
+        .card {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .good { border-left: 4px solid #0a7; }
+        .bad { border-left: 4px solid #c33; }
+        button { padding: .5rem .75rem; font-size: 1rem; margin: 0.25rem; }
+        pre { background: #fff; padding: 1rem; border-radius: 6px; overflow: auto; }
+        .benchmark { font-size: 0.9rem; color: #666; margin-top: 0.5rem; }
+    </style>
+</head>
+<body>
+    <h1>🚀 ESOR - Mejores Prácticas para Escalabilidad</h1>
+
+    <div class="card bad">
+        <h2>❌ PROBLEMA: Arrow Functions Inline</h2>
+        <bad-practice></bad-practice>
+        <p class="benchmark">⚠️ Crea nuevas funciones en cada render (no recomendado para listas grandes)</p>
+    </div>
+
+    <div class="card good">
+        <h2>✅ SOLUCIÓN 1: Handlers Definidos (Recomendado)</h2>
+        <good-practice></good-practice>
+        <p class="benchmark">✨ Las funciones se crean una sola vez y se reutilizan</p>
+    </div>
+
+    <div class="card good">
+        <h2>✅ SOLUCIÓN 2: Handlers con Parámetros</h2>
+        <handlers-with-params></handlers-with-params>
+        <p class="benchmark">✨ Usa closures de forma eficiente para parámetros</p>
+    </div>
+
+    <div class="card good">
+        <h2>✅ SOLUCIÓN 3: Event Delegation (Listas Grandes)</h2>
+        <event-delegation-demo></event-delegation-demo>
+        <p class="benchmark">⚡ Óptimo para listas: 1 listener en vez de N listeners</p>
+    </div>
+
+    <script type="module">
+        import { component, html, signal, computed } from "./dist/esor.min.js";
+
+        // ============================================
+        // ❌ MAL: Arrow Functions Inline
+        // ============================================
+        component("bad-practice", () => {
+            const count = signal(0);
+            const name = signal('Counter');
+
+            // ❌ PROBLEMA: Crea nuevas funciones cada vez que renderiza
+            return html`
+                <div>
+                    <p><strong>${name}:</strong> ${count}</p>
+                    <button onclick=${() => {
+                        count(count() + 1);
+                        name(\`Counter (\${count()})\`);
+                    }}>Increment (Inline Arrow)</button>
+                </div>
+            `;
+        });
+
+        // ============================================
+        // ✅ BUENO: Handlers Definidos
+        // ============================================
+        component("good-practice", () => {
+            const count = signal(0);
+            const name = signal('Counter');
+
+            // ✅ SOLUCIÓN: Define handlers FUERA del template
+            const increment = () => {
+                count(count() + 1);
+                name(\`Counter (\${count()})\`);
+            };
+
+            const decrement = () => {
+                count(count() - 1);
+                name(\`Counter (\${count()})\`);
+            };
+
+            const reset = () => {
+                count(0);
+                name('Counter');
+            };
+
+            return html`
+                <div>
+                    <p><strong>${name}:</strong> ${count}</p>
+                    <button onclick=${increment}>➕ Increment</button>
+                    <button onclick=${decrement}>➖ Decrement</button>
+                    <button onclick=${reset}>🔄 Reset</button>
+                </div>
+            `;
+        });
+
+        // ============================================
+        // ✅ BUENO: Handlers con Parámetros
+        // ============================================
+        component("handlers-with-params", () => {
+            const count = signal(0);
+
+            // ✅ Factory function para handlers parametrizados
+            const adjustBy = (amount) => () => {
+                count(count() + amount);
+            };
+
+            // Pre-crear handlers comunes
+            const handlers = {
+                inc1: adjustBy(1),
+                inc5: adjustBy(5),
+                inc10: adjustBy(10),
+                dec1: adjustBy(-1),
+                reset: () => count(0)
+            };
+
+            return html`
+                <div>
+                    <p><strong>Count:</strong> ${count}</p>
+                    <button onclick=${handlers.inc1}>+1</button>
+                    <button onclick=${handlers.inc5}>+5</button>
+                    <button onclick=${handlers.inc10}>+10</button>
+                    <button onclick=${handlers.dec1}>-1</button>
+                    <button onclick=${handlers.reset}>Reset</button>
+                </div>
+            `;
+        });
+
+        // ============================================
+        // ✅ EXCELENTE: Event Delegation para Listas
+        // ============================================
+        component("event-delegation-demo", () => {
+            const items = signal([
+                { id: 1, text: 'Item 1', count: 0 },
+                { id: 2, text: 'Item 2', count: 0 },
+                { id: 3, text: 'Item 3', count: 0 },
+                { id: 4, text: 'Item 4', count: 0 },
+                { id: 5, text: 'Item 5', count: 0 }
+            ]);
+
+            // ✅ UN SOLO handler delegado (en vez de N handlers)
+            const handleClick = (e) => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+
+                const action = btn.dataset.action;
+                const id = parseInt(btn.dataset.id);
+
+                const newItems = items().map(item => {
+                    if (item.id !== id) return item;
+
+                    if (action === 'inc') {
+                        return { ...item, count: item.count + 1 };
+                    } else if (action === 'dec') {
+                        return { ...item, count: item.count - 1 };
+                    } else if (action === 'reset') {
+                        return { ...item, count: 0 };
+                    }
+                    return item;
+                });
+
+                items(newItems);
+            };
+
+            const renderItem = (item) => html\`
+                <div style="padding: 0.5rem; border: 1px solid #ddd; margin: 0.25rem 0; border-radius: 4px;">
+                    <strong>\${item.text}:</strong> \${item.count}
+                    <button data-action="inc" data-id="\${item.id}">+</button>
+                    <button data-action="dec" data-id="\${item.id}">-</button>
+                    <button data-action="reset" data-id="\${item.id}">Reset</button>
+                </div>
+            \`;
+
+            return html`
+                <div onclick=${handleClick}>
+                    <p><em>💡 Event delegation: 1 listener para todos los botones</em></p>
+                    ${() => items().map(renderItem).join('')}
+                </div>
+            `;
+        });
+    </script>
+</body>
+</html>
