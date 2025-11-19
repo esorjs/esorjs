@@ -4,6 +4,10 @@ import { reconcileArray } from "./reconcile.js";
 const MARKER = "\uFEFF";
 const cache = new WeakMap();
 
+// Template fragment cache for static/semi-static templates
+const fragmentCache = new WeakMap();
+const MAX_FRAGMENT_CACHE = 20;
+
 /**
  * Creates a template object with placeholders replaced by provided values.
  *
@@ -29,7 +33,19 @@ const html = (strings, ...allValues) => {
         key = allValues[keyAttrIndex];
         otherValues.splice(keyAttrIndex, 1);
     }
-    return { template, values: otherValues, _isTemplate: true, _key: key };
+
+    // Detect if template has reactive values for caching optimization
+    const hasReactiveValues = otherValues.some(v => typeof v === 'function');
+    const isStatic = otherValues.length === 0;
+
+    return {
+        template,
+        values: otherValues,
+        _isTemplate: true,
+        _key: key,
+        _isStatic: isStatic,
+        _hasReactiveValues: hasReactiveValues
+    };
 };
 
 /**
@@ -92,7 +108,34 @@ const renderValue = (parent, value, shouldClear = true) => {
  *     The `template` property should be a template element, and the `values` property
  *     should be an array of values to be inserted into the template.
  */
-const renderTemplate = (parent, { template, values }) => {
+const renderTemplate = (parent, { template, values, _isStatic, _hasReactiveValues }) => {
+    // Fast path 1: Completely static templates (no values at all)
+    if (_isStatic) {
+        let fragment = fragmentCache.get(template);
+        if (!fragment) {
+            fragment = template.content.cloneNode(true);
+            // Cache if under limit
+            if (fragmentCache.size < MAX_FRAGMENT_CACHE) {
+                fragmentCache.set(template, template.content.cloneNode(true));
+            }
+        } else {
+            fragment = fragment.cloneNode(true);
+        }
+        parent.appendChild(fragment);
+        return;
+    }
+
+    // Fast path 2: Semi-static templates (no reactive values)
+    // For these, we can use the cached structure but still need to process non-reactive values
+    if (!_hasReactiveValues && fragmentCache.size < MAX_FRAGMENT_CACHE) {
+        let cached = fragmentCache.get(template);
+        if (cached) {
+            parent.appendChild(cached.cloneNode(true));
+            return;
+        }
+    }
+
+    // Standard path: Clone and process template
     const content = template.content.cloneNode(true);
     let valueIndex = 0;
 
@@ -177,6 +220,11 @@ const renderTemplate = (parent, { template, values }) => {
 
     for (let i = 0; i < content.childNodes.length; i++) {
         processNode(content.childNodes[i]);
+    }
+
+    // Cache semi-static templates (no reactive values) for future renders
+    if (!_hasReactiveValues && fragmentCache.size < MAX_FRAGMENT_CACHE) {
+        fragmentCache.set(template, content.cloneNode(true));
     }
 
     parent.appendChild(content);

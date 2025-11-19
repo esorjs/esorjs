@@ -1,7 +1,7 @@
 {
     "name": "esor",
-    "version": "1.1.4",
-    "description": "JavaScript framework for dynamic Web applications based on Web Components",
+    "version": "1.2.0",
+    "description": "Lightweight JavaScript framework for dynamic Web applications based on Web Components with auto-batching and optimized reconciliation",
     "keywords": [
         "web-components",
         "esor",
@@ -10,7 +10,11 @@
         "shadowDOM",
         "reactive",
         "signals",
-        "typescript"
+        "typescript",
+        "lightweight",
+        "performance",
+        "auto-batching",
+        "fast"
     ],
     "author": "Juan Cristobal",
     "license": "MIT",
@@ -20,8 +24,15 @@
         "url": "https://github.com/esorjs/esorjs"
     },
     "type": "module",
+    "sideEffects": false,
     "main": "dist/esor.min.js",
     "types": "esor.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/esor.min.js",
+            "types": "./esor.d.ts"
+        }
+    },
     "files": [
         "dist",
         "esor.d.ts"

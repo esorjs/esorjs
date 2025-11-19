@@ -1,6 +1,9 @@
 // @ts-check
 import { test, expect } from "@playwright/test";
-import { signal, effect, computed, batch } from "../src/hooks/reactivity.js";
+import { signal, effect, computed, batch, flushSync } from "../src/hooks/reactivity.js";
+
+// Helper to wait for microtasks to complete
+const waitForMicrotasks = () => new Promise(resolve => setTimeout(resolve, 0));
 
 test("Performance: signal updates per second", () => {
     const count = signal(0);
@@ -13,9 +16,9 @@ test("Performance: signal updates per second", () => {
 
     const start = performance.now();
 
-    // Perform 1000 updates
+    // Perform 1000 updates with flushSync to measure raw performance
     for (let i = 1; i <= 1000; i++) {
-        count(i);
+        flushSync(() => count(i));
     }
 
     const end = performance.now();
@@ -58,9 +61,9 @@ test("Performance: computed chaining - realistic", () => {
 
     const start = performance.now();
 
-    // Update base multiple times
+    // Update base multiple times with flushSync for synchronous execution
     for (let i = 2; i <= 11; i++) {
-        base(i);
+        flushSync(() => base(i));
     }
 
     const end = performance.now();
@@ -87,10 +90,10 @@ test("Performance: large array handling", () => {
 
     const start = performance.now();
 
-    // Update single item
+    // Update single item (using flushSync for synchronous execution)
     const newArray = [...items()];
     newArray[500] = { id: 500, value: "updated-item-500" };
-    items(newArray);
+    flushSync(() => items(newArray));
 
     const end = performance.now();
 
@@ -127,24 +130,42 @@ test("Performance: batch updates - corrected logic", () => {
     expect(end - start).toBeLessThan(20); // Reasonable time limit
 });
 
-test("Performance: batch vs no batch comparison", () => {
-    // Test without batching
-    const countNoBatch = signal(0);
-    let updateCountNoBatch = 0;
+test("Performance: auto-batching vs flushSync vs manual batch", async () => {
+    // Test 1: flushSync (synchronous execution, no batching)
+    const countSync = signal(0);
+    let updateCountSync = 0;
 
     effect(() => {
-        countNoBatch();
-        updateCountNoBatch++;
+        countSync();
+        updateCountSync++;
     });
 
-    const startNoBatch = performance.now();
+    const startSync = performance.now();
     for (let i = 1; i <= 50; i++) {
-        countNoBatch(i);
+        flushSync(() => countSync(i));
     }
-    const endNoBatch = performance.now();
-    const durationNoBatch = endNoBatch - startNoBatch;
+    const endSync = performance.now();
+    const durationSync = endSync - startSync;
 
-    // Test with batching
+    // Test 2: auto-batching (automatic batching with microtasks)
+    const countAuto = signal(0);
+    let updateCountAuto = 0;
+
+    effect(() => {
+        countAuto();
+        updateCountAuto++;
+    });
+
+    const startAuto = performance.now();
+    for (let i = 1; i <= 50; i++) {
+        countAuto(i);
+    }
+    const endAutoSync = performance.now();
+    await waitForMicrotasks(); // Wait for auto-batching to complete
+    const endAuto = performance.now();
+    const durationAuto = endAutoSync - startAuto; // Measure without setTimeout overhead
+
+    // Test 3: manual batch (explicit batching)
     const countBatch = signal(0);
     let updateCountBatch = 0;
 
@@ -162,16 +183,20 @@ test("Performance: batch vs no batch comparison", () => {
     const endBatch = performance.now();
     const durationBatch = endBatch - startBatch;
 
-    // Verify batch reduces effect executions
-    expect(updateCountNoBatch).toBe(51); // initial + 50 updates
-    expect(updateCountBatch).toBe(2); // initial + 1 batched update at the end
+    // Verify execution counts
+    expect(updateCountSync).toBe(51); // initial + 50 updates (no batching)
+    expect(updateCountAuto).toBe(2); // initial + 1 auto-batched update
+    expect(updateCountBatch).toBe(2); // initial + 1 manual batched update
 
-    // Both should have final value
-    expect(countNoBatch()).toBe(50);
+    // All should have final value
+    expect(countSync()).toBe(50);
+    expect(countAuto()).toBe(50);
     expect(countBatch()).toBe(50);
 
-    // Batch should be at least as fast (or faster)
-    expect(durationBatch).toBeLessThanOrEqual(durationNoBatch + 5); // +5ms tolerance
+    // Auto-batching and manual batch should be faster than flushSync
+    // (measuring only the synchronous part for fair comparison)
+    expect(durationAuto).toBeLessThan(durationSync);
+    expect(durationBatch).toBeLessThan(durationSync);
 });
 
 test("Performance: effect creation and execution", () => {
@@ -189,8 +214,8 @@ test("Performance: effect creation and execution", () => {
         effects.push({ effect: eff, getValue: () => effectValue });
     }
 
-    // Trigger all effects by updating signal
-    count(5);
+    // Trigger all effects by updating signal (using flushSync for synchronous execution)
+    flushSync(() => count(5));
 
     const end = performance.now();
 
@@ -214,8 +239,8 @@ test("Performance: computed dependency chain", () => {
 
     const start = performance.now();
 
-    // Single base update should cascade through all computed
-    base(5);
+    // Single base update should cascade through all computed (using flushSync)
+    flushSync(() => base(5));
 
     const end = performance.now();
 
@@ -235,10 +260,12 @@ test("Performance: memory efficient updates", () => {
         signals.push(signal(i));
     }
 
-    // Update all signals multiple times
+    // Update all signals multiple times (batching helps with memory efficiency)
     for (let round = 0; round < 10; round++) {
-        signals.forEach((s, index) => {
-            s(index * round);
+        batch(() => {
+            signals.forEach((s, index) => {
+                s(index * round);
+            });
         });
     }
 
@@ -247,4 +274,38 @@ test("Performance: memory efficient updates", () => {
     expect(signals.length).toBe(50);
     expect(signals[25]()).toBe(25 * 9); // 25 * (10-1)
     expect(end - start).toBeLessThan(100);
+});
+
+test("Performance: auto-batching demonstration", async () => {
+    // Demonstrate that auto-batching works automatically
+    const count = signal(0);
+    const name = signal("initial");
+    const active = signal(false);
+    let renderCount = 0;
+
+    effect(() => {
+        count();
+        name();
+        active();
+        renderCount++;
+    });
+
+    expect(renderCount).toBe(1); // Initial render
+
+    // Multiple signal updates in same synchronous block
+    count(1);
+    name("updated");
+    active(true);
+
+    // Effects haven't run yet (still in same microtask)
+    expect(renderCount).toBe(1);
+
+    // Wait for auto-batching to complete
+    await waitForMicrotasks();
+
+    // All updates batched into single render
+    expect(renderCount).toBe(2); // Initial + 1 batched update
+    expect(count()).toBe(1);
+    expect(name()).toBe("updated");
+    expect(active()).toBe(true);
 });

@@ -76,8 +76,8 @@ async function main() {
         platform: "browser",
         format: 'esm',
         define: { CDN: '"true"' },
-        treeShaking: false,  // Desactivamos tree shaking para mantener las exportaciones
-        keepNames: true,     // Mantenemos los nombres de las funciones
+        treeShaking: true,   // Activamos tree shaking para optimizar bundle size
+        keepNames: false,     // Permitimos minificación de nombres para menor tamaño
     });
 
     // Log the contents after build
