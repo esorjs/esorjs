@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Probar ESOR.js</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+            margin: 2rem;
+            color: #222;
+        }
+
+        header {
+            margin-bottom: 1rem;
+        }
+
+        pre {
+            background: #f6f8fa;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow: auto;
+        }
+
+        .ok {
+            color: #0a7;
+        }
+
+        .err {
+            color: #c33;
+        }
+
+        button {
+            padding: .5rem .75rem;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Probar ESOR.js</h1>
+        <p>Este archivo intenta cargar <code>esor.js</code> desde la misma carpeta. Si usas otro nombre/ruta, cambia la
+            referencia del script.</p>
+    </header>
+
+    <section>
+        <p>
+            <button id="runBtn">Ejecutar prueba</button>
+            <my-counter></my-counter>
+        </p>
+
+
+    </section>
+
+    <!-- Intentar cargar el archivo local esor.js (colócalo en la misma carpeta si existe) -->
+
+    <script type="module">
+        import { component, html, signal } from "./dist/esor.min.js";
+
+        component("my-counter", () => {
+            const count = signal(0);
+            const name = signal('Counter');
+
+            return html`
+        <div>
+            <h3>${ name()}</h3>
+            <p>Count: ${count()}</p>
+            <button onclick=${() => {
+                    // Múltiples updates
+                    count(count() + 1);
+                    name(`Counter (${count() + 1})`);
+                    // ⚡ Solo 1 render gracias a auto-batching
+                }}>Increment</button>
+        </div>
+    `;
+        });
+
+
+    </script>
+</body>
+
+</html>

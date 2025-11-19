@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Probar ESOR.js - CORREGIDO</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+            margin: 2rem;
+            color: #222;
+        }
+
+        header {
+            margin-bottom: 1rem;
+        }
+
+        pre {
+            background: #f6f8fa;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow: auto;
+        }
+
+        .ok {
+            color: #0a7;
+        }
+
+        .err {
+            color: #c33;
+        }
+
+        button {
+            padding: .5rem .75rem;
+            font-size: 1rem;
+            margin: 0.25rem;
+        }
+
+        my-counter {
+            display: block;
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 2px solid #0a7;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Probar ESOR.js - ✅ VERSIÓN CORREGIDA</h1>
+        <p>Este ejemplo usa la <strong>nueva API simplificada</strong> donde los signals funcionan directamente sin wrapper functions.</p>
+    </header>
+
+    <section>
+        <my-counter></my-counter>
+    </section>
+
+    <script type="module">
+        import { component, html, signal } from "./dist/esor.min.js";
+
+        component("my-counter", () => {
+            const count = signal(0);
+            const name = signal('Counter');
+
+            return html`
+                <div>
+                    <h3>${name}</h3>
+                    <p><strong>Count:</strong> ${count}</p>
+                    <button onclick=${() => {
+                        // Múltiples updates
+                        count(count() + 1);
+                        name(`Counter (${count()})`);
+                        // ⚡ Solo 1 render gracias a auto-batching
+                    }}>➕ Increment</button>
+
+                    <button onclick=${() => {
+                        count(count() - 1);
+                        name(`Counter (${count()})`);
+                    }}>➖ Decrement</button>
+
+                    <button onclick=${() => {
+                        count(0);
+                        name('Counter');
+                    }}>🔄 Reset</button>
+                </div>
+            `;
+        });
+    </script>
+</body>
+
+</html>

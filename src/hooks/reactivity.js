@@ -32,7 +32,7 @@ const signal = (initialValue) => {
     let value = initialValue;
     const subscribers = new Set();
 
-    return (...args) => {
+    const signalFn = (...args) => {
         if (!args.length) {
             currentEffect && subscribers.add(currentEffect);
             return value;
@@ -59,6 +59,11 @@ const signal = (initialValue) => {
 
         return value;
     };
+
+    // Mark as signal for template detection
+    signalFn._isSignal = true;
+
+    return signalFn;
 };
 
 /**

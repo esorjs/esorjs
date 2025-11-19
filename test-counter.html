@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Test Counter - ESOR v1.2.0</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+            margin: 2rem;
+            color: #222;
+        }
+
+        header {
+            margin-bottom: 1rem;
+        }
+
+        button {
+            padding: .5rem .75rem;
+            font-size: 1rem;
+            margin: 0.25rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Test Counter - ESOR v1.2.0 ✨</h1>
+        <p>API Simplificada: Signals sin wrapper functions!</p>
+    </header>
+
+    <section>
+        <my-counter></my-counter>
+    </section>
+
+    <script type="module">
+        import { component, html, signal } from "./dist/esor.min.js";
+
+        component("my-counter", () => {
+            const count = signal(0);
+
+            // ✅ NUEVA API: Pasar signal directamente (sin funciones wrapper)
+            return html`
+                <div>
+                    <p>Counter: ${count}</p>
+                    <button onclick=${() => count(count() + 1)}>Increment</button>
+                    <button onclick=${() => count(count() - 1)}>Decrement</button>
+                    <button onclick=${() => count(0)}>Reset</button>
+                </div>
+            `;
+        });
+    </script>
+</body>
+</html>
