@@ -20,8 +20,15 @@
         "url": "https://github.com/esorjs/esorjs"
     },
     "type": "module",
+    "sideEffects": false,
     "main": "dist/esor.min.js",
     "types": "esor.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/esor.min.js",
+            "types": "./esor.d.ts"
+        }
+    },
     "files": [
         "dist",
         "esor.d.ts"
