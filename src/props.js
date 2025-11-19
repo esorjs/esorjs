@@ -39,7 +39,9 @@ export const parseAttributeValue = (v) => {
  * @param {HTMLElement} h - Element host
  */
 export const initializeProps = (h) => {
-    h._functionProps && Object.assign(h.props, h._functionProps);
+    if (h._functionProps) {
+        Object.assign(h.props, h._functionProps);
+    }
     const attrs = h.attributes;
     for (let i = 0; i < attrs.length; i++) {
         const { name: n, value: v } = attrs[i];
