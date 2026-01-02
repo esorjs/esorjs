@@ -31,11 +31,16 @@
         ".": {
             "import": "./dist/esor.min.js",
             "types": "./esor.d.ts"
+        },
+        "./ssr": {
+            "import": "./dist/esor-ssr.js",
+            "types": "./esor-ssr.d.ts"
         }
     },
     "files": [
         "dist",
-        "esor.d.ts"
+        "esor.d.ts",
+        "esor-ssr.d.ts"
     ],
     "scripts": {
         "build": "node ./scripts/build.js",

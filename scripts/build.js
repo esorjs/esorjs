@@ -55,7 +55,7 @@ async function build(options) {
 
 async function main() {
     ensureDirSync(path.join(BASE_PATH, "dist"));
-    
+
     const commonOptions = {
         bundle: true,
         sourcemap: true,
@@ -66,8 +66,8 @@ async function main() {
         preserveSymlinks: true,
         mainFields: ['module', 'main'],
     };
-    
-    // Build minified version
+
+    // Build minified version (browser)
     await build({
         ...commonOptions,
         entryPoints: [path.join(BASE_PATH, "builds/cdn.js")],
@@ -80,14 +80,37 @@ async function main() {
         keepNames: false,     // Permitimos minificación de nombres para menor tamaño
     });
 
+    // Build SSR version (Node.js)
+    await build({
+        ...commonOptions,
+        entryPoints: [path.join(BASE_PATH, "builds/ssr.js")],
+        outfile: path.join(BASE_PATH, `dist/${NAME}-ssr.js`),
+        minify: true,
+        platform: "node",
+        format: 'esm',
+        external: [],  // Bundle everything for SSR
+        treeShaking: true,
+        keepNames: false,
+    });
+
     // Log the contents after build
     const minFile = path.join(BASE_PATH, `dist/${NAME}.min.js`);
+    const ssrFile = path.join(BASE_PATH, `dist/${NAME}-ssr.js`);
+
     if (fs.existsSync(minFile)) {
-        console.log('✓ File generated successfully');
+        console.log('✓ Browser bundle generated successfully');
         fs.readFileSync(minFile, 'utf-8');
     }
-    
+
+    if (fs.existsSync(ssrFile)) {
+        console.log('✓ SSR bundle generated successfully');
+    }
+
+    console.log('\nBundle sizes:');
+    console.log('Browser bundle:');
     outputSize(minFile);
+    console.log('SSR bundle:');
+    outputSize(ssrFile);
 }
 
 main().catch((error) => {
