@@ -44,6 +44,18 @@ export {
     isSSRContent
 } from './hydrate.js';
 
+// Enhanced API (recommended for new projects)
+export {
+    defineComponent,
+    createSSRComponent,
+    renderComponent,
+    hydrateComponent,
+    render,
+    signal,
+    computed,
+    handler
+} from './enhanced-api.js';
+
 // Import for renderToHTML helper
 import { renderToString as _renderToString } from './render.js';
 import { injectState as _injectState } from './serialize.js';
