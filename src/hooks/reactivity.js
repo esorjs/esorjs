@@ -1,6 +1,8 @@
 let currentEffect = null;
 let batchDepth = 0;
-let pendingEffects = null;
+let pendingEffects = new Set();
+let processingEffects = new Set();
+let hasPendingEffects = false;
 let autoBatchScheduled = false;
 
 /**
@@ -10,10 +12,15 @@ let autoBatchScheduled = false;
  */
 function flushEffects() {
     autoBatchScheduled = false;
-    while (pendingEffects) {
-        const effects = pendingEffects;
-        pendingEffects = null;
-        for (const fn of effects) fn();
+
+    hasPendingEffects = false;
+    while (pendingEffects.size > 0) {
+        const tmp = processingEffects;
+        processingEffects = pendingEffects;
+        pendingEffects = tmp;
+
+        for (const fn of processingEffects) fn();
+        processingEffects.clear();
     }
 }
 
@@ -43,11 +50,13 @@ const signal = (initialValue) => {
             value = newValue;
             if (batchDepth) {
                 // Manual batch is active (higher priority)
-                pendingEffects ||= new Set();
+
+                hasPendingEffects = true;
                 for (const fn of subscribers) pendingEffects.add(fn);
             } else {
                 // Auto-batching with microtask
-                pendingEffects ||= new Set();
+
+                hasPendingEffects = true;
                 for (const fn of subscribers) pendingEffects.add(fn);
 
                 if (!autoBatchScheduled) {
@@ -119,7 +128,7 @@ const computed = (fn) => {
 const batch = (fn) => {
     batchDepth++;
     const result = fn();
-    if (!--batchDepth && pendingEffects) {
+    if (!--batchDepth && hasPendingEffects) {
         flushEffects();
     }
     return result;
@@ -140,7 +149,7 @@ const flushSync = (fn) => {
     batchDepth++;
     const result = fn();
     batchDepth--;
-    if (pendingEffects) {
+    if (hasPendingEffects) {
         flushEffects();
     }
     return result;
