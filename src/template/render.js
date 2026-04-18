@@ -6,6 +6,7 @@ const cache = new WeakMap();
 
 // Template fragment cache for static/semi-static templates
 const fragmentCache = new WeakMap();
+let fragmentCacheSize = 0;
 const MAX_FRAGMENT_CACHE = 20;
 
 /**
@@ -115,8 +116,9 @@ const renderTemplate = (parent, { template, values, _isStatic, _hasReactiveValue
         if (!fragment) {
             fragment = template.content.cloneNode(true);
             // Cache if under limit
-            if (fragmentCache.size < MAX_FRAGMENT_CACHE) {
+            if (fragmentCacheSize < MAX_FRAGMENT_CACHE) {
                 fragmentCache.set(template, template.content.cloneNode(true));
+                fragmentCacheSize++;
             }
         } else {
             fragment = fragment.cloneNode(true);
@@ -127,7 +129,7 @@ const renderTemplate = (parent, { template, values, _isStatic, _hasReactiveValue
 
     // Fast path 2: Semi-static templates (no reactive values)
     // For these, we can use the cached structure but still need to process non-reactive values
-    if (!_hasReactiveValues && fragmentCache.size < MAX_FRAGMENT_CACHE) {
+    if (!_hasReactiveValues) {
         let cached = fragmentCache.get(template);
         if (cached) {
             parent.appendChild(cached.cloneNode(true));
@@ -235,8 +237,9 @@ const renderTemplate = (parent, { template, values, _isStatic, _hasReactiveValue
     }
 
     // Cache semi-static templates (no reactive values) for future renders
-    if (!_hasReactiveValues && fragmentCache.size < MAX_FRAGMENT_CACHE) {
+    if (!_hasReactiveValues && fragmentCacheSize < MAX_FRAGMENT_CACHE) {
         fragmentCache.set(template, content.cloneNode(true));
+        fragmentCacheSize++;
     }
 
     parent.appendChild(content);
