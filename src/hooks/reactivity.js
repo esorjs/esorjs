@@ -32,13 +32,16 @@ const signal = (initialValue) => {
     let value = initialValue;
     const subscribers = new Set();
 
-    const signalFn = (...args) => {
-        if (!args.length) {
+    // Optimization: Using a traditional function with `arguments` instead of
+    // rest parameters `(...args) =>` avoids array allocation on every call.
+    // This makes reading/writing signals significantly faster in hot paths.
+    function signalFn() {
+        if (!arguments.length) {
             currentEffect && subscribers.add(currentEffect);
             return value;
         }
 
-        const newValue = args[0];
+        const newValue = arguments[0];
         if (value !== newValue) {
             value = newValue;
             if (batchDepth) {
