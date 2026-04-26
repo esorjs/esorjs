@@ -6,7 +6,6 @@ const MAX_POOL_SIZE = 50;  // Incrementado de 10 a 50 para mejor eficiencia
 const getContainer = () => containerPool.pop() || document.createElement("div");
 const releaseContainer = (c) => {
     c.textContent = "";
-    c.innerHTML = "";  // Limpieza más completa
     if (containerPool.length < MAX_POOL_SIZE) containerPool.push(c);
 };
 

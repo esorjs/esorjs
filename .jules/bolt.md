@@ -1,0 +1,3 @@
+## 2024-05-19 - Template caching memory bug and innerHTML cost
+**Learning:** In Esor's `src/template/render.js`, caching `template` objects inside a `WeakMap` by `template.content` nodes causes problems if `size` is checked. Additionally, using `c.innerHTML = ""` for cleaning DOM containers (`reconcile.js`) is ~10x slower than just using `c.textContent = ""`. Since `c.textContent = ""` already removes all child nodes (which means `innerHTML` becomes empty), doing both `textContent = ""` AND `innerHTML = ""` is completely redundant and very costly in the inner loop of `releaseContainer`.
+**Action:** Remove redundant `c.innerHTML = ""` when returning DOM elements to the object pool. `textContent = ""` alone is sufficient and much faster.
