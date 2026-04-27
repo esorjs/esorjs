@@ -87,73 +87,24 @@ function patchChildren(parent, oldChildren, newChildren) {
     const oldLen = oldChildren.length;
     const newLen = newChildren.length;
 
-    // Heuristic 1: Fast path for small lists (most common case)
-    if (oldLen < 20 && newLen < 20) {
-        const maxLen = Math.max(oldLen, newLen);
-        for (let i = 0; i < maxLen; i++) {
-            const oldChild = oldChildren[i];
-            const newChild = newChildren[i];
+    const minLen = Math.min(oldLen, newLen);
 
-            if (!oldChild) parent.appendChild(newChild.cloneNode(true));
-            else if (!newChild) {
-                oldChild._cleanup?.();
-                parent.removeChild(oldChild);
-            } else patchNode(oldChild, newChild);
+    // Optimized sequential patching avoiding live NodeList index shifts
+    for (let i = 0; i < minLen; i++) {
+        patchNode(oldChildren[i], newChildren[i]);
+    }
+
+    if (newLen > oldLen) {
+        const fragment = document.createDocumentFragment();
+        for (let i = minLen; i < newLen; i++) {
+            fragment.appendChild(newChildren[i].cloneNode(true));
         }
-        return;
-    }
-
-    // Heuristic 2: Same start - skip identical prefix
-    let startIdx = 0;
-    while (startIdx < oldLen && startIdx < newLen &&
-           isSameNodeType(oldChildren[startIdx], newChildren[startIdx])) {
-        patchNode(oldChildren[startIdx], newChildren[startIdx]);
-        startIdx++;
-    }
-
-    // Heuristic 3: Same end - skip identical suffix
-    let oldEndIdx = oldLen - 1;
-    let newEndIdx = newLen - 1;
-    while (oldEndIdx >= startIdx && newEndIdx >= startIdx &&
-           isSameNodeType(oldChildren[oldEndIdx], newChildren[newEndIdx])) {
-        patchNode(oldChildren[oldEndIdx], newChildren[newEndIdx]);
-        oldEndIdx--;
-        newEndIdx--;
-    }
-
-    // Heuristic 4: Only additions at the end
-    if (startIdx > oldEndIdx && startIdx <= newEndIdx) {
-        const ref = newChildren[newEndIdx + 1]?.nextSibling || null;
-        for (let i = startIdx; i <= newEndIdx; i++) {
-            parent.insertBefore(newChildren[i].cloneNode(true), ref);
-        }
-        return;
-    }
-
-    // Heuristic 5: Only removals from the end
-    if (startIdx > newEndIdx) {
-        for (let i = startIdx; i <= oldEndIdx; i++) {
-            oldChildren[i]._cleanup?.();
-            parent.removeChild(oldChildren[i]);
-        }
-        return;
-    }
-
-    // Remaining complex cases: use general patching
-    const maxLen = Math.max(oldEndIdx - startIdx + 1, newEndIdx - startIdx + 1);
-    for (let i = 0; i < maxLen; i++) {
-        const oldIdx = startIdx + i;
-        const newIdx = startIdx + i;
-        const oldChild = oldIdx <= oldEndIdx ? oldChildren[oldIdx] : null;
-        const newChild = newIdx <= newEndIdx ? newChildren[newIdx] : null;
-
-        if (!oldChild && newChild) {
-            parent.insertBefore(newChild.cloneNode(true), oldChildren[oldIdx] || null);
-        } else if (oldChild && !newChild) {
-            oldChild._cleanup?.();
-            parent.removeChild(oldChild);
-        } else if (oldChild && newChild) {
-            patchNode(oldChild, newChild);
+        parent.appendChild(fragment);
+    } else if (oldLen > newLen) {
+        for (let i = oldLen - 1; i >= minLen; i--) {
+            const child = oldChildren[i];
+            child._cleanup?.();
+            parent.removeChild(child);
         }
     }
 }
@@ -184,24 +135,23 @@ function patchNode(oldNode, newNode) {
         // Update attributes
         const oldAttrs = oldNode.attributes;
         const newAttrs = newNode.attributes;
-        const toRemove = [];
 
         for (let i = oldAttrs.length - 1; i >= 0; i--) {
-            const { name } = oldAttrs[i];
-            if (!newNode.hasAttribute(name)) toRemove.push(name);
+            const name = oldAttrs[i].name;
+            if (!newNode.hasAttribute(name)) {
+                oldNode.removeAttribute(name);
+            }
         }
 
         for (let i = 0; i < newAttrs.length; i++) {
-            const { name, value } = newAttrs[i];
+            const attr = newAttrs[i];
+            const name = attr.name;
+            const value = attr.value;
             if (name === "value" || name === "checked") {
                 if (oldNode[name] !== value) oldNode[name] = value;
             } else {
                 if (oldNode.getAttribute(name) !== value) oldNode.setAttribute(name, value);
             }
-        }
-
-        for (let i = 0; i < toRemove.length; i++) {
-            oldNode.removeAttribute(toRemove[i]);
         }
 
         // Update children using optimized patching
