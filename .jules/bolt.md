@@ -1,0 +1,3 @@
+## 2025-03-09 - Nested Reactivity Effects Bug
+**Learning:** In a signal/effect reactivity system, nested `effect` calls can cause `currentEffect` to be lost if it is reset to `null` after the inner effect runs, causing any subsequent signal reads in the outer effect to fail to register as subscribers. Furthermore, if an effect throws an error, `currentEffect` remains set to that effect unless wrapped in a `try/finally` block, causing a memory leak by continuously subscribing to signals even after the effect failed.
+**Action:** Always use `const prevEffect = currentEffect` and restore it in a `finally` block when building reactivity systems to ensure `currentEffect` preservation during nested calls or exceptions.

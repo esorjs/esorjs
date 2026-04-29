@@ -184,11 +184,9 @@ function patchNode(oldNode, newNode) {
         // Update attributes
         const oldAttrs = oldNode.attributes;
         const newAttrs = newNode.attributes;
-        const toRemove = [];
-
         for (let i = oldAttrs.length - 1; i >= 0; i--) {
             const { name } = oldAttrs[i];
-            if (!newNode.hasAttribute(name)) toRemove.push(name);
+            if (!newNode.hasAttribute(name)) oldNode.removeAttribute(name);
         }
 
         for (let i = 0; i < newAttrs.length; i++) {
@@ -198,10 +196,6 @@ function patchNode(oldNode, newNode) {
             } else {
                 if (oldNode.getAttribute(name) !== value) oldNode.setAttribute(name, value);
             }
-        }
-
-        for (let i = 0; i < toRemove.length; i++) {
-            oldNode.removeAttribute(toRemove[i]);
         }
 
         // Update children using optimized patching
