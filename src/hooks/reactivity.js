@@ -41,19 +41,12 @@ const signal = (initialValue) => {
         const newValue = args[0];
         if (value !== newValue) {
             value = newValue;
-            if (batchDepth) {
-                // Manual batch is active (higher priority)
-                pendingEffects ||= new Set();
-                for (const fn of subscribers) pendingEffects.add(fn);
-            } else {
-                // Auto-batching with microtask
-                pendingEffects ||= new Set();
-                for (const fn of subscribers) pendingEffects.add(fn);
+            pendingEffects ||= new Set();
+            for (const fn of subscribers) pendingEffects.add(fn);
 
-                if (!autoBatchScheduled) {
-                    autoBatchScheduled = true;
-                    queueMicrotask(flushEffects);
-                }
+            if (!batchDepth && !autoBatchScheduled) {
+                autoBatchScheduled = true;
+                queueMicrotask(flushEffects);
             }
         }
 
@@ -79,9 +72,13 @@ const signal = (initialValue) => {
  */
 const effect = (fn) => {
     const execute = () => {
+        const prevEffect = currentEffect;
         currentEffect = execute;
-        fn();
-        currentEffect = null;
+        try {
+            fn();
+        } finally {
+            currentEffect = prevEffect;
+        }
     };
     execute();
     return execute;
