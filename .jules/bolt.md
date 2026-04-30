@@ -1,0 +1,3 @@
+## 2024-05-18 - [WeakMap Size Limitation in Caches]
+**Learning:** `WeakMap` in JavaScript does not have a `.size` property; accessing `WeakMap.size` returns `undefined`. Therefore, checking `weakMap.size < limit` evaluates to `undefined < limit` which is always `false`. This silently breaks any size-limited caching mechanism relying on a `WeakMap`.
+**Action:** When using a `WeakMap` for caching and needing to limit its size, manually track the size with a separate counter variable. (Note: Since `WeakMap` automatically garbage collects unreferenced keys, manual size tracking might drift over time as items are GC'd without the counter decrementing, but it ensures an upper limit on insertions).
