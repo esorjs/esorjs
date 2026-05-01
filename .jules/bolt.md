@@ -1,0 +1,3 @@
+## 2024-05-01 - Signal argument checking
+**Learning:** In V8, using `arguments.length` in an inner function inside a closure (`signalFn`) can sometimes be slightly faster than `...args` and `args.length` for very hot functions like signals, but using a direct check like `if (arguments.length === 0)` avoids array allocation compared to rest parameters. However, in `src/hooks/reactivity.js`, `const signalFn = (...args) =>` is used. Replacing `(...args)` with an explicit formal parameter `(newValue)` and checking `arguments.length` saves rest array allocations.
+**Action:** Optimize `signal` by avoiding the rest parameter `...args` and checking `arguments.length` directly since the setter only needs one parameter (`newValue`).

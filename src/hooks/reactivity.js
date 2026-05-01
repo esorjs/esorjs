@@ -32,13 +32,12 @@ const signal = (initialValue) => {
     let value = initialValue;
     const subscribers = new Set();
 
-    const signalFn = (...args) => {
-        if (!args.length) {
+    const signalFn = function(newValue) {
+        if (arguments.length === 0) {
             currentEffect && subscribers.add(currentEffect);
             return value;
         }
 
-        const newValue = args[0];
         if (value !== newValue) {
             value = newValue;
             if (batchDepth) {
