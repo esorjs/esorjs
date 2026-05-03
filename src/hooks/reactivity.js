@@ -40,6 +40,11 @@ const signal = (initialValue) => {
 
         const newValue = args[0];
         if (value !== newValue) {
+            if (subscribers.size === 0) {
+                value = newValue;
+                return value;
+            }
+
             value = newValue;
             if (batchDepth) {
                 // Manual batch is active (higher priority)

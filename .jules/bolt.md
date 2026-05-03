@@ -1,0 +1,3 @@
+## 2024-05-03 - Fast Path for Unsubscribed Signals
+**Learning:** Reactive signals often have their values updated prior to any subscribers attaching to them. In this lightweight framework, updating a signal when it has 0 subscribers incurs unnecessary overhead initializing pending sets, checking batch depth, and attempting to queue tasks, even when no functions are actually present to queue.
+**Action:** Always check `subscribers.size === 0` in signal setter paths to perform a fast-path assignment and early return. This improves performance significantly for signals that are written to but haven't been subscribed to yet.
