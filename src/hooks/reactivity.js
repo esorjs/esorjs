@@ -41,18 +41,22 @@ const signal = (initialValue) => {
         const newValue = args[0];
         if (value !== newValue) {
             value = newValue;
-            if (batchDepth) {
-                // Manual batch is active (higher priority)
-                pendingEffects ||= new Set();
-                for (const fn of subscribers) pendingEffects.add(fn);
-            } else {
-                // Auto-batching with microtask
-                pendingEffects ||= new Set();
-                for (const fn of subscribers) pendingEffects.add(fn);
+            // Only process pending effects and schedule microtask if there are actually subscribers.
+            // This prevents overhead of queuing empty microtasks when updating unobserved signals.
+            if (subscribers.size > 0) {
+                if (batchDepth) {
+                    // Manual batch is active (higher priority)
+                    pendingEffects ||= new Set();
+                    for (const fn of subscribers) pendingEffects.add(fn);
+                } else {
+                    // Auto-batching with microtask
+                    pendingEffects ||= new Set();
+                    for (const fn of subscribers) pendingEffects.add(fn);
 
-                if (!autoBatchScheduled) {
-                    autoBatchScheduled = true;
-                    queueMicrotask(flushEffects);
+                    if (!autoBatchScheduled) {
+                        autoBatchScheduled = true;
+                        queueMicrotask(flushEffects);
+                    }
                 }
             }
         }
