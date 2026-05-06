@@ -30,29 +30,36 @@ function flushEffects() {
  */
 const signal = (initialValue) => {
     let value = initialValue;
-    const subscribers = new Set();
+    // OPTIMIZATION: Lazy initialization of subscribers Set to save memory and creation time
+    let subscribers = null;
 
     const signalFn = (...args) => {
         if (!args.length) {
-            currentEffect && subscribers.add(currentEffect);
+            if (currentEffect) {
+                subscribers ||= new Set();
+                subscribers.add(currentEffect);
+            }
             return value;
         }
 
         const newValue = args[0];
         if (value !== newValue) {
             value = newValue;
-            if (batchDepth) {
-                // Manual batch is active (higher priority)
-                pendingEffects ||= new Set();
-                for (const fn of subscribers) pendingEffects.add(fn);
-            } else {
-                // Auto-batching with microtask
-                pendingEffects ||= new Set();
-                for (const fn of subscribers) pendingEffects.add(fn);
+            // OPTIMIZATION: Skip reactivity logic if there are no subscribers
+            if (subscribers !== null && subscribers.size > 0) {
+                if (batchDepth) {
+                    // Manual batch is active (higher priority)
+                    pendingEffects ||= new Set();
+                    for (const fn of subscribers) pendingEffects.add(fn);
+                } else {
+                    // Auto-batching with microtask
+                    pendingEffects ||= new Set();
+                    for (const fn of subscribers) pendingEffects.add(fn);
 
-                if (!autoBatchScheduled) {
-                    autoBatchScheduled = true;
-                    queueMicrotask(flushEffects);
+                    if (!autoBatchScheduled) {
+                        autoBatchScheduled = true;
+                        queueMicrotask(flushEffects);
+                    }
                 }
             }
         }
