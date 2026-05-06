@@ -1,0 +1,3 @@
+## 2025-02-09 - Lazy Initialization for Reactivity Structures
+**Learning:** Instantiating objects like `Set` inside frequently invoked factory functions (like `signal` for reactivity) creates a noticeable memory and performance bottleneck, especially for variables that might not have subscribers right away. Unused properties or arrays in hot paths degrade both garbage collection and creation time overhead in highly granular reactive architectures (like Esor).
+**Action:** Always prefer lazy initialization (`let collection = null; collection ||= new Set();`) for reactivity primitives, specifically the `subscribers` container. Additionally, fast-fail checks (`collection !== null && collection.size > 0`) bypass heavier logic for primitives without listeners.
