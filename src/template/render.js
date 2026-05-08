@@ -4,10 +4,6 @@ import { reconcileArray } from "./reconcile.js";
 const MARKER = "\uFEFF";
 const cache = new WeakMap();
 
-// Template fragment cache for static/semi-static templates
-const fragmentCache = new WeakMap();
-const MAX_FRAGMENT_CACHE = 20;
-
 /**
  * Creates a template object with placeholders replaced by provided values.
  *
@@ -33,19 +29,7 @@ const html = (strings, ...allValues) => {
         key = allValues[keyAttrIndex];
         otherValues.splice(keyAttrIndex, 1);
     }
-
-    // Detect if template has reactive values for caching optimization
-    const hasReactiveValues = otherValues.some(v => v?._isSignal || typeof v === 'function');
-    const isStatic = otherValues.length === 0;
-
-    return {
-        template,
-        values: otherValues,
-        _isTemplate: true,
-        _key: key,
-        _isStatic: isStatic,
-        _hasReactiveValues: hasReactiveValues
-    };
+    return { template, values: otherValues, _isTemplate: true, _key: key };
 };
 
 /**
@@ -65,35 +49,27 @@ const html = (strings, ...allValues) => {
  * @param {boolean} [shouldClear=true] - Whether to clear the parent before rendering.
  */
 const renderValue = (parent, value, shouldClear = true) => {
-    if (Array.isArray(value)) {
-        if (value.length && value[0]?._key !== undefined) {
-            reconcileArray(parent, value);
-            return;
-        }
-        if (shouldClear && !(parent instanceof DocumentFragment)) {
-            parent.textContent = "";
-        }
+    if (
+        Array.isArray(value) &&
+        value.length > 0 &&
+        value[0]?._key !== undefined
+    ) {
+        reconcileArray(parent, value);
+        return;
+    }
+    if (shouldClear && !(parent instanceof DocumentFragment)) {
+        while (parent.firstChild) parent.removeChild(parent.firstChild);
+    }
+    if (value == null || value === false) return;
+    if (value._isTemplate) renderTemplate(parent, value);
+    else if (Array.isArray(value)) {
         for (let i = 0; i < value.length; i++) {
             const tempContainer = document.createDocumentFragment();
             renderValue(tempContainer, value[i], false);
             parent.appendChild(tempContainer);
         }
-        return;
-    }
-
-    if (shouldClear && !(parent instanceof DocumentFragment)) {
-        parent.textContent = "";
-    }
-
-    if (value == null || value === false) return;
-
-    if (value._isTemplate) {
-        renderTemplate(parent, value);
-    } else if (value instanceof Node) {
-        parent.appendChild(value);
-    } else {
-        parent.appendChild(document.createTextNode(String(value)));
-    }
+    } else if (value instanceof Node) parent.appendChild(value);
+    else parent.appendChild(document.createTextNode(String(value)));
 };
 
 /**
@@ -108,34 +84,7 @@ const renderValue = (parent, value, shouldClear = true) => {
  *     The `template` property should be a template element, and the `values` property
  *     should be an array of values to be inserted into the template.
  */
-const renderTemplate = (parent, { template, values, _isStatic, _hasReactiveValues }) => {
-    // Fast path 1: Completely static templates (no values at all)
-    if (_isStatic) {
-        let fragment = fragmentCache.get(template);
-        if (!fragment) {
-            fragment = template.content.cloneNode(true);
-            // Cache if under limit
-            if (fragmentCache.size < MAX_FRAGMENT_CACHE) {
-                fragmentCache.set(template, template.content.cloneNode(true));
-            }
-        } else {
-            fragment = fragment.cloneNode(true);
-        }
-        parent.appendChild(fragment);
-        return;
-    }
-
-    // Fast path 2: Semi-static templates (no reactive values)
-    // For these, we can use the cached structure but still need to process non-reactive values
-    if (!_hasReactiveValues && fragmentCache.size < MAX_FRAGMENT_CACHE) {
-        let cached = fragmentCache.get(template);
-        if (cached) {
-            parent.appendChild(cached.cloneNode(true));
-            return;
-        }
-    }
-
-    // Standard path: Clone and process template
+const renderTemplate = (parent, { template, values }) => {
     const content = template.content.cloneNode(true);
     let valueIndex = 0;
 
@@ -149,12 +98,10 @@ const renderTemplate = (parent, { template, values, _isStatic, _hasReactiveValue
             for (let i = 0; i < parts.length; i++) {
                 if (i > 0) {
                     const value = values[valueIndex++];
-                    // Auto-detect signals and functions for reactivity
-                    if (value?._isSignal || typeof value === "function") {
+                    if (typeof value === "function") {
                         const placeholder = document.createElement("span");
                         fragment.appendChild(placeholder);
-                        const getFn = value._isSignal ? () => value() : value;
-                        effect(() => renderValue(placeholder, getFn()));
+                        effect(() => renderValue(placeholder, value()));
                     } else {
                         renderValue(fragment, value, false);
                     }
@@ -173,58 +120,57 @@ const renderTemplate = (parent, { template, values, _isStatic, _hasReactiveValue
             for (let i = 0; i < attrs.length; i++) {
                 const attr = attrs[i];
                 const value = values[valueIndex++];
-                const name = attr.name;
-                node.removeAttribute(name);
+                node.removeAttribute(attr.name);
 
-                if (name === "ref") {
+                if (attr.name === "ref") {
+                    typeof value === "function"
+                        ? value(node)
+                        : value &&
+                          typeof value === "object" &&
+                          (value.current = node);
+                } else if (
+                    attr.name === "style" &&
+                    typeof value === "object" &&
+                    value !== null
+                ) {
+                    typeof value === "function"
+                        ? effect(() => Object.assign(node.style, value()))
+                        : Object.assign(node.style, value);
+                } else if (
+                    typeof value === "function" &&
+                    node.tagName?.includes("-")
+                ) {
+                    node._functionProps ||= {};
+                    node._functionProps[attr.name] = value;
+                } else if (attr.name.startsWith("on")) {
+                    const eventName = attr.name.slice(2).toLowerCase();
                     if (typeof value === "function") {
-                        value(node);
-                    } else if (value) {
-                        value.current = node;
-                    }
-                } else if (name === "style" && value && typeof value === "object") {
-                    if (typeof value === "function") {
-                        effect(() => Object.assign(node.style, value()));
-                    } else {
-                        Object.assign(node.style, value);
-                    }
-                } else if (name[0] === "o" && name[1] === "n") {
-                    const eventName = name.slice(2).toLowerCase();
-                    if (typeof value === "function") {
-                        node._cleanup?.();
+                        if (node._cleanup)
+                            node._cleanup(), (node._cleanup = null);
                         node.addEventListener(eventName, value);
                         node._cleanup = () =>
                             node.removeEventListener(eventName, value);
                     }
-                } else if (value?._isSignal || typeof value === "function") {
-                    // Auto-detect signals and functions for attributes
-                    if (node.tagName?.includes("-")) {
-                        node._functionProps ||= {};
-                        node._functionProps[name] = value;
-                    } else {
-                        const getFn = value._isSignal ? () => value() : value;
-                        effect(() => {
-                            const val = getFn();
-                            if (name === "value" || name === "checked" || name === "selected") {
-                                node[name] = val;
-                            } else if (val == null || val === false) {
-                                node.removeAttribute(name);
-                            } else {
-                                node.setAttribute(name, val === true ? "" : val);
-                            }
-                        });
-                    }
                 } else {
-                    if (name === "value" || name === "checked" || name === "selected") {
-                        node[name] = value;
-                    } else if (value != null && value !== false) {
-                        node.setAttribute(name, value === true ? "" : value);
-                    }
+                    const setAttribute = (val) => {
+                        if (
+                            ["value", "checked", "selected"].includes(attr.name)
+                        )
+                            node[attr.name] = val;
+                        else if (val == null || val === false)
+                            node.removeAttribute(attr.name);
+                        else
+                            node.setAttribute(
+                                attr.name,
+                                val === true ? "" : val
+                            );
+                    };
+                    typeof value === "function"
+                        ? effect(() => setAttribute(value()))
+                        : setAttribute(value);
                 }
             }
-            if (node.hasAttribute("key")) {
-                node.removeAttribute("key");
-            }
+            node.hasAttribute("key") && node.removeAttribute("key");
             for (let i = 0; i < node.childNodes.length; i++)
                 processNode(node.childNodes[i]);
         }
@@ -232,11 +178,6 @@ const renderTemplate = (parent, { template, values, _isStatic, _hasReactiveValue
 
     for (let i = 0; i < content.childNodes.length; i++) {
         processNode(content.childNodes[i]);
-    }
-
-    // Cache semi-static templates (no reactive values) for future renders
-    if (!_hasReactiveValues && fragmentCache.size < MAX_FRAGMENT_CACHE) {
-        fragmentCache.set(template, content.cloneNode(true));
     }
 
     parent.appendChild(content);

@@ -18,14 +18,8 @@ export const createLifecycle = (h) => {
     h._lifecycles = Object.fromEntries(LIFECYCLE_HOOKS.map((k) => [k, []]));
     h.runHook = (k) => {
         const hooks = h._lifecycles?.[k];
-        if (!hooks?.length) return;
-
-        // Batch ejecutar hooks en un solo microtask
-        queueMicrotask(() => {
-            for (let i = 0; i < hooks.length; i++) {
-                hooks[i].call(h);
-            }
-        });
+        hooks?.length &&
+            hooks.forEach((fn) => queueMicrotask(() => fn.call(h)));
     };
 };
 
@@ -60,9 +54,7 @@ LIFECYCLE_HOOKS.forEach((h) => {
  */
 export const onEffect = (fn) => {
     const cleanup = fn();
-    if (typeof cleanup === "function") {
-        addHook("destroy", cleanup);
-    }
+    typeof cleanup === "function" && addHook("destroy", cleanup);
     return () => {};
 };
 
@@ -76,9 +68,8 @@ export const onEffect = (fn) => {
  * a stale or incorrect context.
  */
 export const getCurrentContext = () => {
-    if (!ctx) {
+    !ctx &&
         console.warn("getCurrentContext called outside of component lifecycle");
-    }
     return ctx;
 };
 

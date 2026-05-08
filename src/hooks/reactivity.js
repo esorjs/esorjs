@@ -1,21 +1,5 @@
 let currentEffect = null;
 let batchDepth = 0;
-let pendingEffects = null;
-let autoBatchScheduled = false;
-
-/**
- * Executes all pending effects and resets the auto-batch flag.
- * Continues flushing until no more effects are pending (to handle cascading updates).
- * @private
- */
-function flushEffects() {
-    autoBatchScheduled = false;
-    while (pendingEffects) {
-        const effects = pendingEffects;
-        pendingEffects = null;
-        for (const fn of effects) fn();
-    }
-}
 
 /**
  * Creates a reactive signal that notifies its subscribers when its value changes.
@@ -32,8 +16,8 @@ const signal = (initialValue) => {
     let value = initialValue;
     const subscribers = new Set();
 
-    const signalFn = (...args) => {
-        if (!args.length) {
+    return (...args) => {
+        if (args.length === 0) {
             currentEffect && subscribers.add(currentEffect);
             return value;
         }
@@ -41,29 +25,11 @@ const signal = (initialValue) => {
         const newValue = args[0];
         if (value !== newValue) {
             value = newValue;
-            if (batchDepth) {
-                // Manual batch is active (higher priority)
-                pendingEffects ||= new Set();
-                for (const fn of subscribers) pendingEffects.add(fn);
-            } else {
-                // Auto-batching with microtask
-                pendingEffects ||= new Set();
-                for (const fn of subscribers) pendingEffects.add(fn);
-
-                if (!autoBatchScheduled) {
-                    autoBatchScheduled = true;
-                    queueMicrotask(flushEffects);
-                }
-            }
+            if (batchDepth === 0) for (const fn of subscribers) fn();
         }
 
         return value;
     };
-
-    // Mark as signal for template detection
-    signalFn._isSignal = true;
-
-    return signalFn;
 };
 
 /**
@@ -119,31 +85,8 @@ const computed = (fn) => {
 const batch = (fn) => {
     batchDepth++;
     const result = fn();
-    if (!--batchDepth && pendingEffects) {
-        flushEffects();
-    }
+    --batchDepth;
     return result;
 };
 
-/**
- * Executes a function and immediately flushes all pending effects synchronously.
- *
- * This is useful when you need to ensure that all effects run immediately,
- * bypassing the auto-batching mechanism. This can be important for cases
- * where you need to read DOM measurements or perform operations that depend
- * on the effects having already run.
- *
- * @param {Function} fn - The function to execute.
- * @returns {*} The result of the function.
- */
-const flushSync = (fn) => {
-    batchDepth++;
-    const result = fn();
-    batchDepth--;
-    if (pendingEffects) {
-        flushEffects();
-    }
-    return result;
-};
-
-export { signal, effect, computed, batch, flushSync };
+export { signal, effect, computed, batch };
