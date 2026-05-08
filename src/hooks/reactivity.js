@@ -41,6 +41,7 @@ const signal = (initialValue) => {
         const newValue = args[0];
         if (value !== newValue) {
             value = newValue;
+            if (subscribers.size === 0) return value;
             if (batchDepth) {
                 // Manual batch is active (higher priority)
                 pendingEffects ||= new Set();
