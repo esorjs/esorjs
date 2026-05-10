@@ -16,13 +16,12 @@ const signal = (initialValue) => {
     let value = initialValue;
     const subscribers = new Set();
 
-    return (...args) => {
-        if (args.length === 0) {
+    return function(newValue) {
+        if (arguments.length === 0) {
             currentEffect && subscribers.add(currentEffect);
             return value;
         }
 
-        const newValue = args[0];
         if (value !== newValue) {
             value = newValue;
             if (batchDepth === 0) for (const fn of subscribers) fn();
