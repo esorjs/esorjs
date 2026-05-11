@@ -23,10 +23,13 @@ const html = (strings, ...allValues) => {
         cache.set(strings, cached);
     }
     const { template, keyAttrIndex } = cached;
-    let key,
-        otherValues = [...allValues];
+    let key;
+    // Performance optimization: Avoid unnecessary array allocation when there is no key.
+    // Since allValues is a rest parameter, it is already an array, so we can reuse it directly.
+    let otherValues = allValues;
     if (keyAttrIndex !== -1) {
         key = allValues[keyAttrIndex];
+        otherValues = [...allValues];
         otherValues.splice(keyAttrIndex, 1);
     }
     return { template, values: otherValues, _isTemplate: true, _key: key };
