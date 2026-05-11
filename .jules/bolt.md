@@ -1,0 +1,3 @@
+## 2024-05-18 - Prevent Unnecessary Array Allocation in HTML Template Function
+**Learning:** In the `html` function inside `src/template/render.js`, the spread operator `[...allValues]` was used unconditionally on every render. Because `html` is called very frequently (especially in loops or high-frequency updates), allocating a new array every time puts unnecessary pressure on the garbage collector and slows down rendering.
+**Action:** By conditionally spreading `allValues` only when `keyAttrIndex !== -1` (which modifies the array by splicing out the key), we can use the original `allValues` array most of the time. This avoids a costly memory allocation and array copy on every single `html` template creation that doesn't use a key.
