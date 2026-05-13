@@ -74,10 +74,15 @@ function patchNode(oldNode, newNode) {
 
         // Update attributes
         const oldAttrs = new Map();
-        for (const { name, value } of oldNode.attributes)
-            oldAttrs.set(name, value);
+        for (let i = 0; i < oldNode.attributes.length; i++) {
+            const attr = oldNode.attributes[i];
+            oldAttrs.set(attr.name, attr.value);
+        }
 
-        for (const { name, value } of newNode.attributes) {
+        for (let i = 0; i < newNode.attributes.length; i++) {
+            const attr = newNode.attributes[i];
+            const name = attr.name;
+            const value = attr.value;
             if (name === "value" || name === "checked") {
                 if (oldNode[name] !== value) oldNode[name] = value;
             } else if (oldNode.getAttribute(name) !== value) {
@@ -89,19 +94,21 @@ function patchNode(oldNode, newNode) {
         for (const name of oldAttrs.keys()) oldNode.removeAttribute(name);
 
         // Update children
-        const oldChildren = Array.from(oldNode.childNodes);
-        const newChildren = Array.from(newNode.childNodes);
-        const maxLen = Math.max(oldChildren.length, newChildren.length);
+        let oldChild = oldNode.firstChild;
+        let newChild = newNode.firstChild;
 
-        for (let i = 0; i < maxLen; i++) {
-            const oldChild = oldChildren[i];
-            const newChild = newChildren[i];
+        while (oldChild || newChild) {
+            const nextOld = oldChild ? oldChild.nextSibling : null;
+            const nextNew = newChild ? newChild.nextSibling : null;
 
             if (!oldChild) oldNode.appendChild(newChild.cloneNode(true));
             else if (!newChild) {
                 oldChild._cleanup?.();
                 oldNode.removeChild(oldChild);
             } else patchNode(oldChild, newChild);
+
+            oldChild = nextOld;
+            newChild = nextNew;
         }
     } else if (
         oldNode.nodeType === Node.TEXT_NODE &&
