@@ -73,35 +73,50 @@ function patchNode(oldNode, newNode) {
         }
 
         // Update attributes
-        const oldAttrs = new Map();
-        for (const { name, value } of oldNode.attributes)
-            oldAttrs.set(name, value);
+        // Optimization: Zero-allocation iteration over NamedNodeMap instead of mapping/cloning
+        const oldAttrs = oldNode.attributes;
+        const newAttrs = newNode.attributes;
 
-        for (const { name, value } of newNode.attributes) {
+        for (let i = 0; i < newAttrs.length; i++) {
+            const attr = newAttrs[i];
+            const name = attr.name;
+            const value = attr.value;
             if (name === "value" || name === "checked") {
                 if (oldNode[name] !== value) oldNode[name] = value;
             } else if (oldNode.getAttribute(name) !== value) {
                 oldNode.setAttribute(name, value);
             }
-            oldAttrs.delete(name);
         }
 
-        for (const name of oldAttrs.keys()) oldNode.removeAttribute(name);
+        for (let i = oldAttrs.length - 1; i >= 0; i--) {
+            const name = oldAttrs[i].name;
+            if (!newNode.hasAttribute(name)) {
+                oldNode.removeAttribute(name);
+            }
+        }
 
         // Update children
-        const oldChildren = Array.from(oldNode.childNodes);
-        const newChildren = Array.from(newNode.childNodes);
-        const maxLen = Math.max(oldChildren.length, newChildren.length);
+        // Optimization: Zero-allocation iteration using linked list traversal (firstChild / nextSibling)
+        // This avoids costly Array.from(childNodes) calls which allocate large amounts of memory in hot paths.
+        let oldChild = oldNode.firstChild;
+        let newChild = newNode.firstChild;
 
-        for (let i = 0; i < maxLen; i++) {
-            const oldChild = oldChildren[i];
-            const newChild = newChildren[i];
-
-            if (!oldChild) oldNode.appendChild(newChild.cloneNode(true));
-            else if (!newChild) {
+        while (oldChild || newChild) {
+            if (!oldChild) {
+                oldNode.appendChild(newChild.cloneNode(true));
+                newChild = newChild.nextSibling;
+            } else if (!newChild) {
+                const nextOld = oldChild.nextSibling;
                 oldChild._cleanup?.();
                 oldNode.removeChild(oldChild);
-            } else patchNode(oldChild, newChild);
+                oldChild = nextOld;
+            } else {
+                const nextOld = oldChild.nextSibling;
+                const nextNew = newChild.nextSibling;
+                patchNode(oldChild, newChild);
+                oldChild = nextOld;
+                newChild = nextNew;
+            }
         }
     } else if (
         oldNode.nodeType === Node.TEXT_NODE &&
