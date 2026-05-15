@@ -74,34 +74,44 @@ function patchNode(oldNode, newNode) {
 
         // Update attributes
         const oldAttrs = new Map();
-        for (const { name, value } of oldNode.attributes)
-            oldAttrs.set(name, value);
+        // Bolt ⚡: Use indexed loop instead of for...of destructuring on NamedNodeMap to avoid memory allocation overhead
+        for (let i = 0; i < oldNode.attributes.length; i++) {
+            const attr = oldNode.attributes[i];
+            oldAttrs.set(attr.name, attr.value);
+        }
 
-        for (const { name, value } of newNode.attributes) {
-            if (name === "value" || name === "checked") {
-                if (oldNode[name] !== value) oldNode[name] = value;
-            } else if (oldNode.getAttribute(name) !== value) {
-                oldNode.setAttribute(name, value);
+        for (let i = 0; i < newNode.attributes.length; i++) {
+            const attr = newNode.attributes[i];
+            if (attr.name === "value" || attr.name === "checked") {
+                if (oldNode[attr.name] !== attr.value) oldNode[attr.name] = attr.value;
+            } else if (oldNode.getAttribute(attr.name) !== attr.value) {
+                oldNode.setAttribute(attr.name, attr.value);
             }
-            oldAttrs.delete(name);
+            oldAttrs.delete(attr.name);
         }
 
         for (const name of oldAttrs.keys()) oldNode.removeAttribute(name);
 
         // Update children
-        const oldChildren = Array.from(oldNode.childNodes);
-        const newChildren = Array.from(newNode.childNodes);
-        const maxLen = Math.max(oldChildren.length, newChildren.length);
+        // Bolt ⚡: Avoid Array.from() on live NodeLists. Use firstChild/nextSibling traversal to minimize garbage collection
+        let oldChild = oldNode.firstChild;
+        let newChild = newNode.firstChild;
 
-        for (let i = 0; i < maxLen; i++) {
-            const oldChild = oldChildren[i];
-            const newChild = newChildren[i];
-
-            if (!oldChild) oldNode.appendChild(newChild.cloneNode(true));
-            else if (!newChild) {
+        while (oldChild || newChild) {
+            if (!oldChild) {
+                oldNode.appendChild(newChild.cloneNode(true));
+                newChild = newChild.nextSibling;
+            } else if (!newChild) {
+                const nextOld = oldChild.nextSibling;
                 oldChild._cleanup?.();
                 oldNode.removeChild(oldChild);
-            } else patchNode(oldChild, newChild);
+                oldChild = nextOld;
+            } else {
+                const nextOld = oldChild.nextSibling;
+                patchNode(oldChild, newChild);
+                oldChild = nextOld;
+                newChild = newChild.nextSibling;
+            }
         }
     } else if (
         oldNode.nodeType === Node.TEXT_NODE &&
