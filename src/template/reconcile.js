@@ -14,8 +14,11 @@ import { renderTemplate } from "./render.js";
  */
 function reconcileArray(parent, newTemplates) {
     const oldNodesMap = new Map();
-    for (const child of parent.children) {
+    // Bolt ⚡: Replace for...of loop over live HTMLCollection with firstElementChild/nextElementSibling traversal
+    let child = parent.firstElementChild;
+    while (child) {
         if (child._key !== undefined) oldNodesMap.set(child._key, child);
+        child = child.nextElementSibling;
     }
 
     const newNodes = [];
