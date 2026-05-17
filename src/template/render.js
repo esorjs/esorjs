@@ -171,13 +171,26 @@ const renderTemplate = (parent, { template, values }) => {
                 }
             }
             node.hasAttribute("key") && node.removeAttribute("key");
-            for (let i = 0; i < node.childNodes.length; i++)
-                processNode(node.childNodes[i]);
+
+            // Bolt ⚡: Avoid indexed loops on live NodeLists
+            let child = node.firstChild;
+            while (child) {
+                // processNode might modify the DOM (e.g. replacing a text node with a fragment)
+                // so we need to capture the next sibling before processing
+                const next = child.nextSibling;
+                processNode(child);
+                child = next;
+            }
         }
     };
 
-    for (let i = 0; i < content.childNodes.length; i++) {
-        processNode(content.childNodes[i]);
+    // Bolt ⚡: Avoid indexed loops on live NodeLists
+    let child = content.firstChild;
+    while (child) {
+        // processNode might modify the DOM
+        const next = child.nextSibling;
+        processNode(child);
+        child = next;
     }
 
     parent.appendChild(content);
