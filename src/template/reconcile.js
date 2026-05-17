@@ -14,8 +14,11 @@ import { renderTemplate } from "./render.js";
  */
 function reconcileArray(parent, newTemplates) {
     const oldNodesMap = new Map();
-    for (const child of parent.children) {
+    // Bolt ⚡: Avoid for...of on live HTMLCollection. Use firstElementChild/nextElementSibling
+    let child = parent.firstElementChild;
+    while (child) {
         if (child._key !== undefined) oldNodesMap.set(child._key, child);
+        child = child.nextElementSibling;
     }
 
     const newNodes = [];
@@ -42,11 +45,21 @@ function reconcileArray(parent, newTemplates) {
         parent.removeChild(node);
     }
 
+    // Bolt ⚡: Avoid indexed access on live HTMLCollection. Use direct pointer traversal
+    let currentChild = parent.firstElementChild;
     for (let i = 0; i < newNodes.length; i++) {
         const expectedNode = newNodes[i];
-        const currentNode = parent.children[i];
-        if (currentNode !== expectedNode)
-            parent.insertBefore(expectedNode, currentNode || null);
+        if (currentChild !== expectedNode) {
+            parent.insertBefore(expectedNode, currentChild || null);
+            // insertBefore moves expectedNode before currentChild.
+            // currentChild remains the same, next expected node will be checked against it.
+            // But if currentChild was expectedNode, we'd advance currentChild.
+            // Actually, we must track the real DOM position.
+            // After insertBefore, the newly inserted node is where currentChild used to be,
+            // and currentChild is shifted. So the next actual DOM node is currentChild.
+        } else {
+            currentChild = currentChild.nextElementSibling;
+        }
     }
 }
 
