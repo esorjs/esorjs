@@ -4,3 +4,6 @@
 ## 2024-05-24 - DOM Traversal on Live NodeLists
 **Learning:** Iterating over live DOM collections (`children` via `for...of` or `childNodes` via indexed loops) forces the browser to frequently re-evaluate the collection and allocates unnecessary memory.
 **Action:** Always prefer direct pointer traversal (`firstElementChild`/`nextElementSibling` or `firstChild`/`nextSibling`) for DOM reconciliation, especially inside hot paths like `reconcileArray` and `renderTemplate` where performance overhead accumulates rapidly.
+## 2024-05-25 - Microtask Batching for Hooks
+**Learning:** Enqueuing multiple microtasks in a loop (e.g., `queueMicrotask` per hook) incurs a massive performance penalty compared to enqueuing a single microtask that iterates and executes all items.
+**Action:** In hot execution paths that require deferring tasks (like lifecycle hooks), always enqueue a single microtask and use a high-performance loop (like an indexed `for` loop) inside it to execute the collection of tasks.
