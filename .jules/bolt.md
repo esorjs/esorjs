@@ -7,3 +7,7 @@
 ## 2024-05-24 - Microtask Queue Batching
 **Learning:** Enqueuing multiple microtasks in a loop (e.g., `queueMicrotask` per hook in `forEach`) incurs a massive performance penalty and causes heap memory exhaustion for large sets compared to enqueuing a single microtask that iterates and executes all items. Benchmarking showed an overhead reduction from ~65ms to ~2ms for 100k iteration test case.
 **Action:** Always wrap array iteration inside a single `queueMicrotask` instead of wrapping each element execution in a distinct `queueMicrotask`. Also prefer standard `for` loop over `.forEach` in hot paths.
+
+## 2024-05-27 - Iterator overhead on live collections
+**Learning:** Using `for...of` loops with object destructuring (e.g., `for (const { name: n, value: v } of h.attributes)`) over live `NamedNodeMap`s inside hot paths incurs heavy performance penalties due to iterator allocation and memory usage from destructuring. Benchmarking showed ~2.5x slower execution (803ms vs 332ms for 1M iterations) compared to indexed loops.
+**Action:** Replace `for...of` loops with standard indexed `for` loops (`for (let i = 0; i < h.attributes.length; i++)`) for iterating over `NamedNodeMap` properties in hot paths like `initializeProps` to significantly boost execution speed and reduce garbage collection workload.
