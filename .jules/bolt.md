@@ -7,3 +7,7 @@
 ## 2024-05-24 - Microtask Queue Batching
 **Learning:** Enqueuing multiple microtasks in a loop (e.g., `queueMicrotask` per hook in `forEach`) incurs a massive performance penalty and causes heap memory exhaustion for large sets compared to enqueuing a single microtask that iterates and executes all items. Benchmarking showed an overhead reduction from ~65ms to ~2ms for 100k iteration test case.
 **Action:** Always wrap array iteration inside a single `queueMicrotask` instead of wrapping each element execution in a distinct `queueMicrotask`. Also prefer standard `for` loop over `.forEach` in hot paths.
+
+## 2024-05-28 - Optimizing `NamedNodeMap` iteration in `src/props.js`
+**Learning:** Destructuring a `NamedNodeMap` object (like `h.attributes`) using a `for...of` loop creates unnecessary iterator and memory allocation overhead. A standard indexed `for` loop is much faster and reduces garbage collection pressure, which is particularly beneficial during component mounting and initialization.
+**Action:** Always prefer indexed `for` loops when iterating over `NamedNodeMap` or similar DOM array-like collections on hot execution paths to ensure minimal allocation overhead.
