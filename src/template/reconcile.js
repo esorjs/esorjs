@@ -86,13 +86,9 @@ function patchNode(oldNode, newNode) {
         }
 
         // Update attributes
-        const oldAttrs = new Map();
-        // Bolt ⚡: Use indexed loop instead of for...of destructuring on NamedNodeMap to avoid memory allocation overhead
-        for (let i = 0; i < oldNode.attributes.length; i++) {
-            const attr = oldNode.attributes[i];
-            oldAttrs.set(attr.name, attr.value);
-        }
-
+        // Bolt ⚡: Avoid intermediate Map allocations when syncing attributes.
+        // Apply attributes from the new node directly, then iterate backwards
+        // through the old node's attributes to remove missing ones.
         for (let i = 0; i < newNode.attributes.length; i++) {
             const attr = newNode.attributes[i];
             if (attr.name === "value" || attr.name === "checked") {
@@ -100,10 +96,14 @@ function patchNode(oldNode, newNode) {
             } else if (oldNode.getAttribute(attr.name) !== attr.value) {
                 oldNode.setAttribute(attr.name, attr.value);
             }
-            oldAttrs.delete(attr.name);
         }
 
-        for (const name of oldAttrs.keys()) oldNode.removeAttribute(name);
+        for (let i = oldNode.attributes.length - 1; i >= 0; i--) {
+            const attr = oldNode.attributes[i];
+            if (!newNode.hasAttribute(attr.name)) {
+                oldNode.removeAttribute(attr.name);
+            }
+        }
 
         // Update children
         // Bolt ⚡: Avoid Array.from() on live NodeLists. Use firstChild/nextSibling traversal to minimize garbage collection

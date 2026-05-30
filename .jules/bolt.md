@@ -7,3 +7,6 @@
 ## 2024-05-24 - Microtask Queue Batching
 **Learning:** Enqueuing multiple microtasks in a loop (e.g., `queueMicrotask` per hook in `forEach`) incurs a massive performance penalty and causes heap memory exhaustion for large sets compared to enqueuing a single microtask that iterates and executes all items. Benchmarking showed an overhead reduction from ~65ms to ~2ms for 100k iteration test case.
 **Action:** Always wrap array iteration inside a single `queueMicrotask` instead of wrapping each element execution in a distinct `queueMicrotask`. Also prefer standard `for` loop over `.forEach` in hot paths.
+## 2024-06-03 - DOM Attribute Syncing Optimization
+**Learning:** Using an intermediate `Map` during DOM attribute syncing (reading all old attributes, deleting matched ones, and removing the rest) creates significant object allocation and GC overhead in `patchNode`.
+**Action:** Avoid `Map` allocations. Apply new attributes directly, then iterate backward through the old node's `attributes` (to safely modify the live `NamedNodeMap`) and use native `!newNode.hasAttribute(attr.name)` to remove obsolete ones.
