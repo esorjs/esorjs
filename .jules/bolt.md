@@ -7,3 +7,6 @@
 ## 2024-05-24 - Microtask Queue Batching
 **Learning:** Enqueuing multiple microtasks in a loop (e.g., `queueMicrotask` per hook in `forEach`) incurs a massive performance penalty and causes heap memory exhaustion for large sets compared to enqueuing a single microtask that iterates and executes all items. Benchmarking showed an overhead reduction from ~65ms to ~2ms for 100k iteration test case.
 **Action:** Always wrap array iteration inside a single `queueMicrotask` instead of wrapping each element execution in a distinct `queueMicrotask`. Also prefer standard `for` loop over `.forEach` in hot paths.
+## 2025-02-28 - Fast DOM children removal
+**Learning:** Using `parent.textContent = ''` is significantly faster for clearing a DOM node's children compared to iterating with `while (parent.firstChild) parent.removeChild(parent.firstChild);`. This is due to internal browser optimizations for textContent assignment.
+**Action:** Prefer `parent.textContent = ''` when clearing all children of a non-DocumentFragment node, particularly in hot paths like template rendering.
