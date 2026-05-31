@@ -58,7 +58,9 @@ const renderValue = (parent, value, shouldClear = true) => {
         return;
     }
     if (shouldClear && !(parent instanceof DocumentFragment)) {
-        while (parent.firstChild) parent.removeChild(parent.firstChild);
+        // Bolt ⚡: Using textContent = '' is significantly faster for clearing DOM children
+        // than while (parent.firstChild) parent.removeChild(parent.firstChild);
+        parent.textContent = '';
     }
     if (value == null || value === false) return;
     if (value._isTemplate) renderTemplate(parent, value);
