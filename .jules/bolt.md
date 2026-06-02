@@ -10,3 +10,6 @@
 ## 2025-02-28 - Fast DOM children removal
 **Learning:** Using `parent.textContent = ''` is significantly faster for clearing a DOM node's children compared to iterating with `while (parent.firstChild) parent.removeChild(parent.firstChild);`. This is due to internal browser optimizations for textContent assignment.
 **Action:** Prefer `parent.textContent = ''` when clearing all children of a non-DocumentFragment node, particularly in hot paths like template rendering.
+## 2025-02-28 - Fast DOM attribute synchronization
+**Learning:** Avoid intermediate `Map` allocations when syncing attributes between old and new nodes.
+**Action:** Apply attributes from the new node directly, then iterate backwards through the old node's attributes to remove missing ones using `!newNode.hasAttribute()`, which significantly reduces object allocation and garbage collection overhead.
