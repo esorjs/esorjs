@@ -13,3 +13,6 @@
 ## 2025-02-28 - Fast DOM attribute synchronization
 **Learning:** Avoid intermediate `Map` allocations when syncing attributes between old and new nodes.
 **Action:** Apply attributes from the new node directly, then iterate backwards through the old node's attributes to remove missing ones using `!newNode.hasAttribute()`, which significantly reduces object allocation and garbage collection overhead.
+## 2025-02-28 - Fast component object initialization
+**Learning:** Avoid using `Object.fromEntries(arr.map(...))` or dynamically generating object keys inside hot component creation paths (like initializing lifecycle hooks). The overhead of array allocation, mapping, and key creation is significant for such frequent operations.
+**Action:** Use literal object assignments with predefined keys when the schema is known and fixed.
