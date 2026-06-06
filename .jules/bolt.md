@@ -13,3 +13,6 @@
 ## 2025-02-28 - Fast DOM attribute synchronization
 **Learning:** Avoid intermediate `Map` allocations when syncing attributes between old and new nodes.
 **Action:** Apply attributes from the new node directly, then iterate backwards through the old node's attributes to remove missing ones using `!newNode.hasAttribute()`, which significantly reduces object allocation and garbage collection overhead.
+## 2025-02-28 - Fast empty set and arguments handling
+**Learning:** Checking `set.size > 0` before a `for...of` loop over a `Set` avoids iterator setup overhead. Using the `arguments` object in regular functions instead of rest parameters (`...args`) in arrow functions is faster in some hot paths, like signal getter/setter.
+**Action:** Use `if (subscribers.size > 0)` before iterating, and prefer `function() { ... arguments[0] }` over `(...args) => { ... args[0] }` in frequently called generic wrapper functions like signals.
