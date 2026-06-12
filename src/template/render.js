@@ -155,8 +155,11 @@ const renderTemplate = (parent, { template, values }) => {
                     }
                 } else {
                     const setAttribute = (val) => {
+                        // Bolt ⚡: Avoid array allocation and .includes() for hot path attribute checks.
                         if (
-                            ["value", "checked", "selected"].includes(attr.name)
+                            attr.name === "value" ||
+                            attr.name === "checked" ||
+                            attr.name === "selected"
                         )
                             node[attr.name] = val;
                         else if (val == null || val === false)
