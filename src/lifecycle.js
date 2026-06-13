@@ -15,7 +15,14 @@ const LIFECYCLE_HOOKS = [
  */
 export const createLifecycle = (h) => {
     ctx = h;
-    h._lifecycles = Object.fromEntries(LIFECYCLE_HOOKS.map((k) => [k, []]));
+    // Bolt ⚡: Use object literal instead of Object.fromEntries(map(...)) for faster initialization
+    h._lifecycles = {
+        beforeMount: [],
+        mount: [],
+        beforeUpdate: [],
+        update: [],
+        destroy: []
+    };
     h.runHook = (k) => {
         const hooks = h._lifecycles?.[k];
         if (hooks?.length) {
