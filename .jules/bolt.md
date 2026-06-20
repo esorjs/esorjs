@@ -13,3 +13,6 @@
 ## 2025-02-28 - Fast DOM attribute synchronization
 **Learning:** Avoid intermediate `Map` allocations when syncing attributes between old and new nodes.
 **Action:** Apply attributes from the new node directly, then iterate backwards through the old node's attributes to remove missing ones using `!newNode.hasAttribute()`, which significantly reduces object allocation and garbage collection overhead.
+## 2025-02-28 - Fast attribute name checking
+**Learning:** Avoid inline array creation and `.includes()` checks (e.g., `['a', 'b'].includes(val)`) inside hot rendering loops. Use direct boolean equality comparisons (e.g., `val === 'a' || val === 'b'`) to eliminate dynamic memory allocation and garbage collection overhead.
+**Action:** Use direct comparisons (`===` combined with `||`) for small sets of known strings instead of `[...].includes()` during DOM patching and rendering.
