@@ -13,3 +13,10 @@
 ## 2025-02-28 - Fast DOM attribute synchronization
 **Learning:** Avoid intermediate `Map` allocations when syncing attributes between old and new nodes.
 **Action:** Apply attributes from the new node directly, then iterate backwards through the old node's attributes to remove missing ones using `!newNode.hasAttribute()`, which significantly reduces object allocation and garbage collection overhead.
+## 2025-02-28 - Avoid inline array `.includes` in hot paths
+**Learning:** Avoid inline array creation and `.includes()` checks (e.g., `['a', 'b'].includes(val)`) inside hot rendering loops.
+**Action:** Use direct boolean equality comparisons (e.g., `val === 'a' || val === 'b'`) to eliminate dynamic memory allocation and garbage collection overhead.
+
+## 2025-02-28 - Fast string character checking
+**Learning:** Checking a specific string character using index accessor `string[0]` incurs unnecessary string allocation overhead in V8 compared to `String.prototype.charCodeAt(0)`.
+**Action:** Use `String.prototype.charCodeAt(0)` instead of `string[0]` for checking specific single characters in hot paths to avoid unnecessary string allocation overhead.

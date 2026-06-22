@@ -20,7 +20,7 @@ export const parseAttributeValue = (v) => {
     if (v === "true") return true;
     if (v === "false") return false;
     if (NUM_REGEX.test(v)) return Number(v);
-    if (typeof v === "string" && (v[0] === "{" || v[0] === "[")) {
+    if (typeof v === "string" && (v.charCodeAt(0) === 123 || v.charCodeAt(0) === 91)) {
         try {
             return JSON.parse(v);
         } catch {}
