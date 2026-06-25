@@ -15,7 +15,15 @@ const LIFECYCLE_HOOKS = [
  */
 export const createLifecycle = (h) => {
     ctx = h;
-    h._lifecycles = Object.fromEntries(LIFECYCLE_HOOKS.map((k) => [k, []]));
+    // Bolt ⚡: Avoid Object.fromEntries() and .map() in hot component creation paths
+    // Literal object assignment is significantly faster by eliminating dynamic allocation overhead
+    h._lifecycles = {
+        beforeMount: [],
+        mount: [],
+        beforeUpdate: [],
+        update: [],
+        destroy: []
+    };
     h.runHook = (k) => {
         const hooks = h._lifecycles?.[k];
         if (hooks?.length) {
