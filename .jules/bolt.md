@@ -20,3 +20,7 @@
 ## 2025-02-28 - Fast string character checking
 **Learning:** Checking a specific string character using index accessor `string[0]` incurs unnecessary string allocation overhead in V8 compared to `String.prototype.charCodeAt(0)`.
 **Action:** Use `String.prototype.charCodeAt(0)` instead of `string[0]` for checking specific single characters in hot paths to avoid unnecessary string allocation overhead.
+
+## 2025-02-28 - Fast component lifecycle initialization
+**Learning:** Using `Object.fromEntries(arr.map(...))` to initialize fixed-schema object properties (like lifecycle hooks) inside hot component creation paths causes significant overhead due to multiple array allocations, closures, and object mapping.
+**Action:** Use literal object assignments with predefined keys when the schema is known to eliminate dynamic memory allocation and garbage collection overhead during component initialization.
