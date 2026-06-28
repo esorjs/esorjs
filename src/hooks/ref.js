@@ -6,5 +6,6 @@
  */
 export function ref(initialValue = null) {
     let current = initialValue;
-    return (...v) => (v.length === 0 ? current : (current = v[0]));
+    // Bolt ⚡: Using `function()` and `arguments` instead of `(...args) =>` avoids array allocation overhead
+    return function() { return arguments.length === 0 ? current : (current = arguments[0]); };
 }
