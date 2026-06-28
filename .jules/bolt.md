@@ -20,3 +20,6 @@
 ## 2025-02-28 - Fast string character checking
 **Learning:** Checking a specific string character using index accessor `string[0]` incurs unnecessary string allocation overhead in V8 compared to `String.prototype.charCodeAt(0)`.
 **Action:** Use `String.prototype.charCodeAt(0)` instead of `string[0]` for checking specific single characters in hot paths to avoid unnecessary string allocation overhead.
+## 2026-06-28 - Fast reactivity wrapper and set iteration
+**Learning:** Using rest parameters (`...args`) inside frequently executed wrapper functions (like signals and refs) incurs unnecessary array allocation overhead in V8. Additionally, executing `for...of` loops on empty `Set`s incurs iterator setup overhead.
+**Action:** Use standard `function()` and check `arguments.length` instead of rest parameters. Check `set.size > 0` before iterating over a `Set` in hot paths to bypass setup overhead when empty.

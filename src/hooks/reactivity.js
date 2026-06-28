@@ -16,16 +16,18 @@ const signal = (initialValue) => {
     let value = initialValue;
     const subscribers = new Set();
 
-    return (...args) => {
-        if (args.length === 0) {
+    // Bolt ⚡: Using `function()` and `arguments` instead of `(...args) =>` avoids array allocation overhead
+    return function() {
+        if (arguments.length === 0) {
             currentEffect && subscribers.add(currentEffect);
             return value;
         }
 
-        const newValue = args[0];
+        const newValue = arguments[0];
         if (value !== newValue) {
             value = newValue;
-            if (batchDepth === 0) for (const fn of subscribers) fn();
+            // Bolt ⚡: Check `subscribers.size > 0` before iterating to bypass Set iterator setup overhead when empty
+            if (batchDepth === 0 && subscribers.size > 0) for (const fn of subscribers) fn();
         }
 
         return value;
