@@ -20,3 +20,7 @@
 ## 2025-02-28 - Fast string character checking
 **Learning:** Checking a specific string character using index accessor `string[0]` incurs unnecessary string allocation overhead in V8 compared to `String.prototype.charCodeAt(0)`.
 **Action:** Use `String.prototype.charCodeAt(0)` instead of `string[0]` for checking specific single characters in hot paths to avoid unnecessary string allocation overhead.
+
+## 2026-07-01 - Avoid Unnecessary Array Cloning in Hot Paths
+**Learning:** Unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths like `html` template creation introduces significant dynamic memory allocation and garbage collection overhead.
+**Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass this overhead. Only clone when mutation is strictly required.
