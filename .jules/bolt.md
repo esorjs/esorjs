@@ -20,3 +20,6 @@
 ## 2025-02-28 - Fast string character checking
 **Learning:** Checking a specific string character using index accessor `string[0]` incurs unnecessary string allocation overhead in V8 compared to `String.prototype.charCodeAt(0)`.
 **Action:** Use `String.prototype.charCodeAt(0)` instead of `string[0]` for checking specific single characters in hot paths to avoid unnecessary string allocation overhead.
+## 2025-02-28 - Avoid for...of on NamedNodeMaps
+**Learning:** Iterating over a `NamedNodeMap` (like `element.attributes`) using `for...of` with object destructuring (e.g., `for (const {name, value} of attributes)`) creates an iterator object and allocates a new destructured object for every attribute, leading to unnecessary memory allocation and garbage collection overhead in hot component initialization paths.
+**Action:** Use standard indexed `for` loops (e.g., `for (let i = 0; i < attributes.length; i++)`) and directly access properties like `attributes[i].name` to completely eliminate iterator and object destructuring overhead.
