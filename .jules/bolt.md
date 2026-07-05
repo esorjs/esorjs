@@ -20,3 +20,7 @@
 ## 2025-02-28 - Fast string character checking
 **Learning:** Checking a specific string character using index accessor `string[0]` incurs unnecessary string allocation overhead in V8 compared to `String.prototype.charCodeAt(0)`.
 **Action:** Use `String.prototype.charCodeAt(0)` instead of `string[0]` for checking specific single characters in hot paths to avoid unnecessary string allocation overhead.
+
+## 2025-02-28 - Avoid array cloning in rest parameters
+**Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) when a function receives parameters via rest syntax (`...allValues`). The rest parameter is already a newly allocated array on every call, and can be mutated or passed directly.
+**Action:** Use the original rest parameter array instead of copying it to bypass dynamic allocation and garbage collection overhead in hot rendering paths.

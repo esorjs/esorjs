@@ -23,13 +23,12 @@ const html = (strings, ...allValues) => {
         cache.set(strings, cached);
     }
     const { template, keyAttrIndex } = cached;
-    let key,
-        otherValues = [...allValues];
+    let key;
     if (keyAttrIndex !== -1) {
         key = allValues[keyAttrIndex];
-        otherValues.splice(keyAttrIndex, 1);
+        allValues.splice(keyAttrIndex, 1);
     }
-    return { template, values: otherValues, _isTemplate: true, _key: key };
+    return { template, values: allValues, _isTemplate: true, _key: key };
 };
 
 /**
