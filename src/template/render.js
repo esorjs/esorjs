@@ -24,9 +24,11 @@ const html = (strings, ...allValues) => {
     }
     const { template, keyAttrIndex } = cached;
     let key,
-        otherValues = [...allValues];
+        otherValues = allValues;
     if (keyAttrIndex !== -1) {
         key = allValues[keyAttrIndex];
+        // ⚡ Bolt: Avoid unnecessary array cloning in hot rendering paths
+        otherValues = [...allValues];
         otherValues.splice(keyAttrIndex, 1);
     }
     return { template, values: otherValues, _isTemplate: true, _key: key };
