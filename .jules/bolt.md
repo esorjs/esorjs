@@ -28,3 +28,11 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+
+## 2025-02-28 - Fast Set iteration for reactivity subscribers
+**Learning:** In V8, setting up a `for...of` iterator for a `Set` incurs noticeable overhead even when the `Set` is empty. In the reactivity system, signals frequently update when they have no subscribers.
+**Action:** Always check `set.size > 0` before entering a `for...of` loop to iterate over a `Set`. This bypasses the iterator setup overhead for empty sets, significantly improving performance for unobserved signal updates.
+
+## 2025-02-28 - Fast array iteration in component lifecycle
+**Learning:** Using `Array.prototype.forEach` in hot paths like component initialization and destruction incurs unnecessary closure allocation and function call overhead.
+**Action:** Use standard indexed `for` loops instead of `.forEach` for iterating over arrays in hot execution paths to minimize memory allocation and maximize execution speed.
