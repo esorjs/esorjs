@@ -51,8 +51,12 @@ const BaseComponent = (setup, options = {}) =>
         #initializeComponent() {
             createLifecycle(this);
             initializeProps(this);
-            options.globalStyles &&
-                s().forEach((s) => this.#shadow.appendChild(s.cloneNode(true)));
+            if (options.globalStyles) {
+                const styles = s();
+                for (let i = 0; i < styles.length; i++) {
+                    this.#shadow.appendChild(styles[i].cloneNode(true));
+                }
+            }
             const template = setup?.call(this, this.props);
             renderTemplate(this.#shadow, template);
         }
@@ -61,7 +65,9 @@ const BaseComponent = (setup, options = {}) =>
             this.runHook("mount");
         }
         disconnectedCallback() {
-            this._cleanup.forEach((c) => c());
+            for (let i = 0; i < this._cleanup.length; i++) {
+                this._cleanup[i]();
+            }
             this._cleanup = [];
             this.runHook("destroy");
         }
