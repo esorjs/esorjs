@@ -28,3 +28,7 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+
+## 2025-02-28 - Global Microtask Queue Batching
+**Learning:** Enqueuing a new microtask for every component's lifecycle hook execution causes significant performance overhead and blocks the main thread during bulk updates (e.g., rendering large lists).
+**Action:** Use a global batching queue with a single `queueMicrotask` to flush all pending lifecycle hooks across multiple components at once.
