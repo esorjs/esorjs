@@ -25,7 +25,8 @@ const signal = (initialValue) => {
         const newValue = args[0];
         if (value !== newValue) {
             value = newValue;
-            if (batchDepth === 0) for (const fn of subscribers) fn();
+            // ⚡ Bolt: Check set.size > 0 before for...of to avoid iterator setup overhead on empty Sets
+            if (batchDepth === 0 && subscribers.size > 0) for (const fn of subscribers) fn();
         }
 
         return value;
