@@ -35,7 +35,12 @@ export const parseAttributeValue = (v) => {
  */
 export const initializeProps = (h) => {
     h._functionProps && Object.assign(h.props, h._functionProps);
-    for (const { name: n, value: v } of h.attributes) {
+    // Bolt ⚡: Avoid for...of destructuring on live NamedNodeMap to minimize iterator and GC overhead
+    const attributes = h.attributes;
+    for (let i = 0; i < attributes.length; i++) {
+        const attr = attributes[i];
+        const n = attr.name;
+        const v = attr.value;
         if (n.startsWith("on") || n.startsWith("ref")) continue;
         if (v === "function" && h._functionProps?.[n]) continue;
         h.props[n] = parseAttributeValue(v);

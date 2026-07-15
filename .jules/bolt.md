@@ -28,3 +28,7 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+
+## 2024-06-03 - NamedNodeMap Iteration Optimization
+**Learning:** Iterating over `NamedNodeMap` (like `element.attributes`) using `for...of` with destructuring creates unnecessary iterator objects and performs memory allocations inside hot paths.
+**Action:** Use a standard indexed `for` loop and access properties directly (`attr.name`, `attr.value`) to avoid iterator setup and object destructuring overhead.
