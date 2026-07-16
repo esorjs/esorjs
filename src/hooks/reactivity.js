@@ -25,7 +25,7 @@ const signal = (initialValue) => {
         const newValue = args[0];
         if (value !== newValue) {
             value = newValue;
-            if (batchDepth === 0) for (const fn of subscribers) fn();
+            if (batchDepth === 0 && subscribers.size > 0) for (const fn of subscribers) fn();
         }
 
         return value;
