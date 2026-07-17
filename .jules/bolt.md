@@ -1,3 +1,7 @@
+## 2025-02-28 - Centralized microtask queue for lifecycle hooks
+**Learning:** Enqueuing individual microtasks per component hook via closures causes unnecessary memory allocation and performance overhead compared to centralizing them into a single microtask queue.
+**Action:** Use a module-level flat array (`[hooks1, context1, ...]`) and a single `queueMicrotask` to batch and iterate through hook executions in hot paths.
+
 ## 2024-05-19 - DOM Reconciliation Optimization
 **Learning:** Avoid using `Array.from()` on live `NodeList`s and `for...of` destructuring on `NamedNodeMap`s during DOM reconciliation.
 **Action:** Use `firstChild`/`nextSibling` traversal for child nodes and indexed `for` loops for attributes to minimize memory allocation and garbage collection overhead.
