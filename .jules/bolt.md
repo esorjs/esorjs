@@ -28,3 +28,10 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+## 2025-02-28 - Optimize Component Lifecycle Hook Queuing
+**Learning:** In hot rendering paths and component creation, enqueuing multiple microtasks in a loop (e.g., `queueMicrotask` for each lifecycle hook in `runHook`) incurs a massive performance penalty compared to enqueuing a single microtask that iterates and executes all items from a flat array queue.
+**Action:** Use a single shared queue and flag to batch execution of lifecycle hooks via a single `queueMicrotask` call, taking care to wrap the execution in a `try...finally` block to clear the queue and reset the flag even if a hook throws an error.
+
+## 2025-02-28 - Error Isolation in Shared Microtask Queues
+**Learning:** Batching multiple potentially unrelated component hooks into a single global array queue breaks error isolation. If one component's hook throws an error and isn't caught individually, the entire loop breaks, and subsequent hooks from other components in the queue are silently dropped.
+**Action:** When batching component logic into a shared queue, wrap individual executions in `try...catch` blocks to ensure errors in one component do not prevent execution of remaining components in the shared queue.
