@@ -67,11 +67,12 @@ const renderValue = (parent, value, shouldClear = true) => {
     if (value == null || value === false) return;
     if (value._isTemplate) renderTemplate(parent, value);
     else if (Array.isArray(value)) {
+        // Bolt ⚡: Reuse a single DocumentFragment for all array items to significantly reduce memory allocation overhead
+        const tempContainer = document.createDocumentFragment();
         for (let i = 0; i < value.length; i++) {
-            const tempContainer = document.createDocumentFragment();
             renderValue(tempContainer, value[i], false);
-            parent.appendChild(tempContainer);
         }
+        parent.appendChild(tempContainer);
     } else if (value instanceof Node) parent.appendChild(value);
     else parent.appendChild(document.createTextNode(String(value)));
 };

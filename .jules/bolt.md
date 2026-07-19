@@ -28,3 +28,7 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+
+## 2025-02-28 - Fast Array Rendering DocumentFragment Allocation
+**Learning:** Inside `renderValue` when dealing with arrays, repeatedly allocating a new `DocumentFragment` inside the iteration loop (e.g., `for(let i=0; i<value.length; i++)`) incurs a measurable performance penalty due to memory allocation and garbage collection.
+**Action:** Reuse a single `DocumentFragment` across the entire array iteration, appending it to the parent once after the loop finishes. This significantly reduces object allocation overhead for arrays containing many items.

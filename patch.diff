@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    else if (Array.isArray(value)) {
+        for (let i = 0; i < value.length; i++) {
+            const tempContainer = document.createDocumentFragment();
+            renderValue(tempContainer, value[i], false);
+            parent.appendChild(tempContainer);
+        }
+    } else if (value instanceof Node) parent.appendChild(value);
+=======
+    else if (Array.isArray(value)) {
+        const tempContainer = document.createDocumentFragment();
+        for (let i = 0; i < value.length; i++) {
+            renderValue(tempContainer, value[i], false);
+        }
+        parent.appendChild(tempContainer);
+    } else if (value instanceof Node) parent.appendChild(value);
+>>>>>>> REPLACE
