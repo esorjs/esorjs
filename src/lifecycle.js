@@ -7,6 +7,27 @@ const LIFECYCLE_HOOKS = [
     "destroy",
 ];
 
+let isHookQueued = false;
+const hookQueue = [];
+const flushHooks = () => {
+    isHookQueued = false;
+    try {
+        for (let i = 0; i < hookQueue.length; i += 2) {
+            const hCtx = hookQueue[i];
+            const hooks = hookQueue[i + 1];
+            for (let j = 0; j < hooks.length; j++) {
+                try {
+                    hooks[j].call(hCtx);
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+        }
+    } finally {
+        hookQueue.length = 0;
+    }
+};
+
 /**
  * Initializes the lifecycle system for a component.
  * @param {object} h - The host component to which the lifecycle is attached.
@@ -26,11 +47,11 @@ export const createLifecycle = (h) => {
     h.runHook = (k) => {
         const hooks = h._lifecycles?.[k];
         if (hooks?.length) {
-            queueMicrotask(() => {
-                for (let i = 0; i < hooks.length; i++) {
-                    hooks[i].call(h);
-                }
-            });
+            hookQueue.push(h, hooks);
+            if (!isHookQueued) {
+                isHookQueued = true;
+                queueMicrotask(flushHooks);
+            }
         }
     };
 };
