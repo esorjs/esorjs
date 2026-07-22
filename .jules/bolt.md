@@ -28,3 +28,10 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+
+## 2025-02-28 - Fast Set Iteration
+**Learning:** Checking set.size > 0 before entering a for...of loop avoids iterator setup overhead when the Set is frequently empty.
+**Action:** Always check set.size > 0 before iterating over Sets in hot paths.
+## 2025-02-28 - Safe Batching Mechanism
+**Learning:** When implementing batching mechanisms, always wrap the task execution in a try...finally block.
+**Action:** Use try...finally blocks around batched callbacks to ensure batch locks/depths are reset even on errors.
