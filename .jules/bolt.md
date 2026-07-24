@@ -28,3 +28,7 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+
+## 2026-07-24 - DocumentFragment Reuse in Array Rendering
+**Learning:** Allocating a new DocumentFragment and appending to the parent for each item in an array rendering loop causes significant dynamic memory allocation and DOM manipulation overhead.
+**Action:** Always create a single DocumentFragment outside the loop, render all items into it, and perform a single appendChild to the parent to minimize garbage collection and improve rendering speed.
