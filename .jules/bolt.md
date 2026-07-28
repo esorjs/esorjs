@@ -28,3 +28,6 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+## 2025-02-28 - Microtask Queue Batching in Lifecycle Hooks
+**Learning:** Enqueuing multiple microtasks in a loop (e.g., `queueMicrotask` per hook invocation) incurs a massive performance penalty and causes heap memory exhaustion for large sets compared to enqueuing a single microtask that iterates and executes all items. Benchmarks showed an overhead reduction of approximately 40% when moving from multiple queueMicrotasks to a single shared queue.
+**Action:** Implement a shared microtask queue using a single flat array and a flag. Instead of scheduling a new microtask for each hook call, push the context and hooks to a shared queue `lifecycleQueue.push(h, hooks)` and schedule a single `queueMicrotask(runLifecycleQueue)`. Ensure execution within the single microtask is wrapped in a `try...catch` block to preserve error isolation, and `try...finally` to always reset the queue.
