@@ -1,0 +1,20 @@
+
+  <!DOCTYPE html>
+  <html>
+  <head>
+      <title>Array Rendering Test</title>
+      <style>
+          my-list { display: block; border: 1px solid black; padding: 10px; min-height: 100px; }
+      </style>
+      <script type="module">
+          import { component, html } from './dist/esor.min.js';
+          component("my-list", () => {
+              const items = Array.from({length: 100}, (_, i) => html`<li>Item ${i + 1}</li>`);
+              return html`<ul>${items}</ul>`;
+          });
+      </script>
+  </head>
+  <body>
+      <my-list></my-list>
+  </body>
+  </html>
