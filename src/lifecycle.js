@@ -7,6 +7,28 @@ const LIFECYCLE_HOOKS = [
     "destroy",
 ];
 
+let isMicrotaskQueued = false;
+const hookQueue = [];
+
+const flushHooks = () => {
+    try {
+        for (let i = 0; i < hookQueue.length; i += 2) {
+            const h = hookQueue[i];
+            const hooks = hookQueue[i + 1];
+            for (let j = 0; j < hooks.length; j++) {
+                try {
+                    hooks[j].call(h);
+                } catch (e) {
+                    setTimeout(() => { throw e; }, 0);
+                }
+            }
+        }
+    } finally {
+        hookQueue.length = 0;
+        isMicrotaskQueued = false;
+    }
+};
+
 /**
  * Initializes the lifecycle system for a component.
  * @param {object} h - The host component to which the lifecycle is attached.
@@ -26,11 +48,12 @@ export const createLifecycle = (h) => {
     h.runHook = (k) => {
         const hooks = h._lifecycles?.[k];
         if (hooks?.length) {
-            queueMicrotask(() => {
-                for (let i = 0; i < hooks.length; i++) {
-                    hooks[i].call(h);
-                }
-            });
+            // Bolt ⚡: Use shared microtask queue for hooks
+            hookQueue.push(h, hooks);
+            if (!isMicrotaskQueued) {
+                isMicrotaskQueued = true;
+                queueMicrotask(flushHooks);
+            }
         }
     };
 };
