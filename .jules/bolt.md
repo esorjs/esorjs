@@ -28,3 +28,7 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+
+## 2025-02-28 - Fast TextNode updates
+**Learning:** Updating text content directly via `node.nodeValue` on a TextNode is measurably faster than using `node.textContent` in hot paths.
+**Action:** Prefer `nodeValue` over `textContent` when specifically manipulating TextNodes, such as during DOM reconciliation, to reduce DOM access overhead.

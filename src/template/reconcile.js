@@ -129,8 +129,10 @@ function patchNode(oldNode, newNode) {
         oldNode.nodeType === Node.TEXT_NODE &&
         newNode.nodeType === Node.TEXT_NODE
     ) {
-        if (oldNode.textContent !== newNode.textContent)
-            oldNode.textContent = newNode.textContent;
+        // Bolt ⚡: Updating text content directly via node.nodeValue on a TextNode
+        // is measurably faster than using node.textContent in hot paths.
+        if (oldNode.nodeValue !== newNode.nodeValue)
+            oldNode.nodeValue = newNode.nodeValue;
     } else oldNode.replaceWith(newNode.cloneNode(true));
 }
 
