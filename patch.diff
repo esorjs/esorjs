@@ -1,0 +1,97 @@
+<<<<<<< SEARCH
+let ctx = null;
+const LIFECYCLE_HOOKS = [
+    "beforeMount",
+    "mount",
+    "beforeUpdate",
+    "update",
+    "destroy",
+];
+
+/**
+ * Initializes the lifecycle system for a component.
+ * @param {object} h - The host component to which the lifecycle is attached.
+ * Sets up the lifecycle hooks for the component and defines a method to run
+ * these hooks.
+ */
+export const createLifecycle = (h) => {
+    ctx = h;
+    // ⚡ Bolt: Avoid Object.fromEntries and array mapping in component creation path
+    h._lifecycles = {
+        beforeMount: [],
+        mount: [],
+        beforeUpdate: [],
+        update: [],
+        destroy: []
+    };
+    h.runHook = (k) => {
+        const hooks = h._lifecycles?.[k];
+        if (hooks?.length) {
+            queueMicrotask(() => {
+                for (let i = 0; i < hooks.length; i++) {
+                    hooks[i].call(h);
+                }
+            });
+        }
+    };
+};
+=======
+let ctx = null;
+const LIFECYCLE_HOOKS = [
+    "beforeMount",
+    "mount",
+    "beforeUpdate",
+    "update",
+    "destroy",
+];
+
+let isMicrotaskQueued = false;
+const hookQueue = [];
+
+const flushHooks = () => {
+    try {
+        for (let i = 0; i < hookQueue.length; i += 2) {
+            const fn = hookQueue[i];
+            const context = hookQueue[i + 1];
+            try {
+                fn.call(context);
+            } catch (e) {
+                setTimeout(() => { throw e; }, 0);
+            }
+        }
+    } finally {
+        hookQueue.length = 0;
+        isMicrotaskQueued = false;
+    }
+};
+
+/**
+ * Initializes the lifecycle system for a component.
+ * @param {object} h - The host component to which the lifecycle is attached.
+ * Sets up the lifecycle hooks for the component and defines a method to run
+ * these hooks.
+ */
+export const createLifecycle = (h) => {
+    ctx = h;
+    // ⚡ Bolt: Avoid Object.fromEntries and array mapping in component creation path
+    h._lifecycles = {
+        beforeMount: [],
+        mount: [],
+        beforeUpdate: [],
+        update: [],
+        destroy: []
+    };
+    h.runHook = (k) => {
+        const hooks = h._lifecycles?.[k];
+        if (hooks?.length) {
+            for (let i = 0; i < hooks.length; i++) {
+                hookQueue.push(hooks[i], h);
+            }
+            if (!isMicrotaskQueued) {
+                isMicrotaskQueued = true;
+                queueMicrotask(flushHooks);
+            }
+        }
+    };
+};
+>>>>>>> REPLACE
