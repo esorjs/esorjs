@@ -28,3 +28,11 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+
+## 2026-08-07 - Avoid unnecessary iterator setup in signal notification
+**Learning:** Iterating a Set with `for...of` incurs an iterator setup overhead even when the set is empty, which can impact hot paths like signal reactivity.
+**Action:** Always check `set.size > 0` before entering a `for...of` loop on Sets in frequently executed code.
+
+## 2026-08-07 - Batch lifecycle hook microtasks
+**Learning:** Enqueuing individual microtasks per component hook via `queueMicrotask` accumulates massive overhead in large lists.
+**Action:** Use a flat array queue and a shared microtask with a `try...finally` loop to process hook execution batches, significantly reducing execution time.
