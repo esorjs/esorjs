@@ -28,3 +28,7 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+
+## 2025-02-28 - Flat array global microtask queue batching
+**Learning:** Enqueuing multiple microtasks in a loop (e.g., `queueMicrotask` per hook execution in components) incurs a massive performance penalty compared to enqueuing a single microtask that iterates and executes all queued items. Additionally, using flat arrays (e.g., `[hooks1, ctx1, hooks2, ctx2]`) and stepping by 2 is much faster than allocating intermediate wrapper objects.
+**Action:** When implementing batching mechanisms (like a shared microtask queue), always use a single global microtask, store data in a flat array, and wrap the execution loop in a `try...finally` block to clear the queue, ensuring the queue isn't permanently blocked by a thrown error. Wrap individual callbacks in `try...catch` and rethrow with `setTimeout` to preserve error observability without breaking the loop.
