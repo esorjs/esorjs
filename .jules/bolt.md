@@ -28,3 +28,7 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+
+## 2025-02-28 - Fast array slicing in hot rendering paths
+**Learning:** Using `[...arr]` spread syntax followed by `arr.splice(idx, 1)` to extract a single element from an array is significantly slower in V8 than manually copying the array using a pre-allocated `new Array(arr.length - 1)` loop.
+**Action:** In hot rendering paths like the `html` template literal tag, use a pre-allocated array and manual index assignment to skip the targeted index, avoiding the dual overhead of spread allocation and `splice` shifting.
