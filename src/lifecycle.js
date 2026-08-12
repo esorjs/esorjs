@@ -1,4 +1,23 @@
 let ctx = null;
+
+// ⚡ Bolt: Global batched queue for lifecycle hooks to minimize microtask scheduling overhead
+let isMicrotaskQueued = false;
+let hookQueue = [];
+
+const flushHookQueue = () => {
+    try {
+        for (let i = 0; i < hookQueue.length; i += 2) {
+            try {
+                hookQueue[i].call(hookQueue[i + 1]);
+            } catch (e) {
+                setTimeout(() => { throw e; }, 0);
+            }
+        }
+    } finally {
+        hookQueue = [];
+        isMicrotaskQueued = false;
+    }
+};
 const LIFECYCLE_HOOKS = [
     "beforeMount",
     "mount",
@@ -26,11 +45,13 @@ export const createLifecycle = (h) => {
     h.runHook = (k) => {
         const hooks = h._lifecycles?.[k];
         if (hooks?.length) {
-            queueMicrotask(() => {
-                for (let i = 0; i < hooks.length; i++) {
-                    hooks[i].call(h);
-                }
-            });
+            for (let i = 0; i < hooks.length; i++) {
+                hookQueue.push(hooks[i], h);
+            }
+            if (!isMicrotaskQueued) {
+                isMicrotaskQueued = true;
+                queueMicrotask(flushHookQueue);
+            }
         }
     };
 };
