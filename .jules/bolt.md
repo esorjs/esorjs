@@ -28,3 +28,7 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+
+## 2025-03-09 - Centralized Microtask Queueing for Lifecycle Hooks
+**Learning:** Enqueuing multiple microtasks in a loop (e.g., calling `queueMicrotask` repeatedly, like for every single hook invocation) incurs a massive performance penalty compared to enqueuing a single microtask that iterates and executes all batched items. My benchmark demonstrated an over 7.5x performance improvement (913ms to 121ms for 100k component lifecycle calls) when centralizing the hook execution queue and draining it via a single microtask. When utilizing a shared queue like this, using a flat array mapping `[hook1, ctx1, hook2, ctx2]` instead of allocating intermediate objects `[{hook, ctx}]` further cuts down on GC overhead. It is also important to wrap the execution inside `try...finally` to always reset the `isMicrotaskQueued` lock.
+**Action:** Always batch updates into a single microtask using a global queue instead of calling `queueMicrotask` individually per element or hook.

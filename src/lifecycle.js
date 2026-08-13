@@ -1,4 +1,28 @@
 let ctx = null;
+
+let isMicrotaskQueued = false;
+const hookQueue = [];
+
+// ⚡ Bolt: Centralize microtask queueing for lifecycle hooks.
+// Enqueuing a single microtask that drains a shared array reduces
+// significant overhead and garbage collection compared to multiple closures.
+const flushHooks = () => {
+    isMicrotaskQueued = false;
+    try {
+        for (let i = 0; i < hookQueue.length; i += 2) {
+            const hook = hookQueue[i];
+            const context = hookQueue[i + 1];
+            try {
+                hook.call(context);
+            } catch (e) {
+                setTimeout(() => { throw e; }, 0);
+            }
+        }
+    } finally {
+        hookQueue.length = 0;
+    }
+};
+
 const LIFECYCLE_HOOKS = [
     "beforeMount",
     "mount",
@@ -26,11 +50,13 @@ export const createLifecycle = (h) => {
     h.runHook = (k) => {
         const hooks = h._lifecycles?.[k];
         if (hooks?.length) {
-            queueMicrotask(() => {
-                for (let i = 0; i < hooks.length; i++) {
-                    hooks[i].call(h);
-                }
-            });
+            for (let i = 0; i < hooks.length; i++) {
+                hookQueue.push(hooks[i], h);
+            }
+            if (!isMicrotaskQueued) {
+                isMicrotaskQueued = true;
+                queueMicrotask(flushHooks);
+            }
         }
     };
 };
