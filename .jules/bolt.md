@@ -28,3 +28,11 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+
+## 2025-02-28 - Fast array extraction in hot paths
+**Learning:** In V8, using [...arr] spread syntax followed by arr.splice(idx, 1) to extract a single element is significantly slower than manually copying the array using a pre-allocated new Array(arr.length - 1) loop in hot execution paths.
+**Action:** Use manual array copying with a loop to extract an element from an array instead of spread syntax and splice() in hot rendering paths.
+
+## 2025-02-28 - Fast string extraction in hot paths
+**Learning:** In V8/Node.js, String.prototype.substring() can be significantly faster than String.prototype.slice() for extracting suffixes from small strings in performance-critical hot paths (e.g., parsing DOM attributes).
+**Action:** Use String.prototype.substring() instead of String.prototype.slice() when extracting suffixes from small strings in hot paths.
