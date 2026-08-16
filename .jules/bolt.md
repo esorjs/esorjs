@@ -28,3 +28,7 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+
+## 2025-02-28 - Fast Hook Queue Batching
+**Learning:** Use flat arrays (e.g., [item1, context1, item2, context2]) and iterate by steps (e.g., i += 2) instead of allocating intermediate wrapper objects (e.g., [{item, context}]) for queuing mechanisms in hot paths. Enqueuing multiple microtasks in a loop incurs a massive performance penalty compared to enqueuing a single microtask that iterates and executes all items.
+**Action:** Implement shared queues using flat arrays for enqueuing multiple contextual tasks and execute them using a single batched microtask in hot execution paths to significantly reduce memory allocation and microtask queuing overhead. Always wrap array iteration inside a single queueMicrotask instead of wrapping each element execution in a distinct queueMicrotask.
