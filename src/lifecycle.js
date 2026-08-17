@@ -1,4 +1,25 @@
 let ctx = null;
+
+let queue = [];
+let isMicrotaskQueued = false;
+
+const flushQueue = () => {
+    try {
+        for (let i = 0; i < queue.length; i += 2) {
+            const hook = queue[i];
+            const context = queue[i + 1];
+            try {
+                hook.call(context);
+            } catch (e) {
+                setTimeout(() => { throw e; }, 0);
+            }
+        }
+    } finally {
+        queue.length = 0;
+        isMicrotaskQueued = false;
+    }
+};
+
 const LIFECYCLE_HOOKS = [
     "beforeMount",
     "mount",
@@ -26,11 +47,13 @@ export const createLifecycle = (h) => {
     h.runHook = (k) => {
         const hooks = h._lifecycles?.[k];
         if (hooks?.length) {
-            queueMicrotask(() => {
-                for (let i = 0; i < hooks.length; i++) {
-                    hooks[i].call(h);
-                }
-            });
+            for (let i = 0; i < hooks.length; i++) {
+                queue.push(hooks[i], h);
+            }
+            if (!isMicrotaskQueued) {
+                isMicrotaskQueued = true;
+                queueMicrotask(flushQueue);
+            }
         }
     };
 };
