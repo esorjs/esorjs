@@ -13,6 +13,26 @@ const LIFECYCLE_HOOKS = [
  * Sets up the lifecycle hooks for the component and defines a method to run
  * these hooks.
  */
+let isMicrotaskQueued = false;
+const hookQueue = [];
+
+const flushHooks = () => {
+    try {
+        for (let i = 0; i < hookQueue.length; i += 2) {
+            const hook = hookQueue[i];
+            const context = hookQueue[i + 1];
+            try {
+                hook.call(context);
+            } catch (e) {
+                setTimeout(() => { throw e; }, 0);
+            }
+        }
+    } finally {
+        hookQueue.length = 0;
+        isMicrotaskQueued = false;
+    }
+};
+
 export const createLifecycle = (h) => {
     ctx = h;
     // ⚡ Bolt: Avoid Object.fromEntries and array mapping in component creation path
@@ -26,11 +46,14 @@ export const createLifecycle = (h) => {
     h.runHook = (k) => {
         const hooks = h._lifecycles?.[k];
         if (hooks?.length) {
-            queueMicrotask(() => {
-                for (let i = 0; i < hooks.length; i++) {
-                    hooks[i].call(h);
-                }
-            });
+            // Bolt ⚡: Global queue for microtasks with flat array to reduce allocations
+            for (let i = 0; i < hooks.length; i++) {
+                hookQueue.push(hooks[i], h);
+            }
+            if (!isMicrotaskQueued) {
+                isMicrotaskQueued = true;
+                queueMicrotask(flushHooks);
+            }
         }
     };
 };
