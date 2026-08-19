@@ -28,3 +28,7 @@
 ## 2025-02-28 - Avoid unnecessary array cloning in hot rendering paths
 **Learning:** Avoid unnecessary array cloning (e.g., `[...allValues]`) in hot rendering paths.
 **Action:** If an array is only read sequentially and not mutated, pass or return the original array to bypass dynamic allocation and garbage collection overhead.
+
+## 2025-02-28 - Fast string suffix extraction
+**Learning:** In V8/Node.js, `String.prototype.substring()` can be significantly faster than `String.prototype.slice()` for extracting suffixes from small strings in performance-critical hot paths (e.g., parsing DOM attributes).
+**Action:** Use `String.prototype.substring()` instead of `String.prototype.slice()` when extracting suffixes from strings in hot paths to improve execution performance.
