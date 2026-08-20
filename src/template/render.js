@@ -28,8 +28,10 @@ const html = (strings, ...allValues) => {
     if (keyAttrIndex !== -1) {
         key = allValues[keyAttrIndex];
         // ⚡ Bolt: Avoid unnecessary array cloning in hot rendering paths
-        otherValues = [...allValues];
-        otherValues.splice(keyAttrIndex, 1);
+        otherValues = new Array(allValues.length - 1);
+        for (let i = 0, j = 0; i < allValues.length; i++) {
+            if (i !== keyAttrIndex) otherValues[j++] = allValues[i];
+        }
     }
     return { template, values: otherValues, _isTemplate: true, _key: key };
 };
